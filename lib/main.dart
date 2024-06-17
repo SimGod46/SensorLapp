@@ -1,5 +1,26 @@
+/*
+import 'package:flutter/material.dart';
+
+import './MainPage.dart';
+
+void main() => runApp(new ExampleApplication());
+
+class ExampleApplication extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(home: MainPage());
+  }
+}
+*/
+
+import 'dart:async';
+import 'dart:ffi';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
+
+import 'BackgroundCollectingTask.dart';
+import 'DiscoveryPage.dart';
 
 void main() {
   runApp(Datapp());
@@ -24,29 +45,115 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  FlutterBlue flutterBlue = FlutterBlue.instance;
+  BluetoothState _bluetoothState = BluetoothState.UNKNOWN;
   List<BluetoothDevice> devicesList = [];
-  bool isConnected = false;
   bool isLoading = false;
+  bool isConnected = false;
+  String _address = "...";
+  String _name = "...";
+
+  Timer? _discoverableTimeoutTimer;
+  int _discoverableTimeoutSecondsLeft = 0;
+
+  BackgroundCollectingTask? _collectingTask;
+
+  bool _autoAcceptPairingRequests = false;
 
   @override
   void initState() {
     super.initState();
-    startBluetoothScan();
+
+    // Get current state
+    FlutterBluetoothSerial.instance.state.then((state) {
+      setState(() {
+        _bluetoothState = state;
+      });
+    });
+
+    Future.doWhile(() async {
+      // Wait if adapter not enabled
+      if ((await FlutterBluetoothSerial.instance.isEnabled) ?? false) {
+        return false;
+      }
+      await Future.delayed(Duration(milliseconds: 0xDD));
+      return true;
+    }).then((_) {
+      // Update the address field
+      FlutterBluetoothSerial.instance.address.then((address) {
+        setState(() {
+          _address = address!;
+        });
+      });
+    });
+
+    FlutterBluetoothSerial.instance.name.then((name) {
+      setState(() {
+        _name = name!;
+      });
+    });
+
+    // Listen for futher state changes
+    FlutterBluetoothSerial.instance
+        .onStateChanged()
+        .listen((BluetoothState state) {
+      setState(() {
+        _bluetoothState = state;
+
+        // Discoverable mode is disabled when Bluetooth gets disabled
+        _discoverableTimeoutTimer = null;
+        _discoverableTimeoutSecondsLeft = 0;
+      });
+    });
   }
 
-  void startBluetoothScan() {
+  @override
+  void dispose() {
+    FlutterBluetoothSerial.instance.setPairingRequestHandler(null);
+    _collectingTask?.dispose();
+    _discoverableTimeoutTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> startBluetoothScan() async {
+    if(_bluetoothState.isEnabled){
+      final BluetoothDevice? selectedDevice =
+      await Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) {
+            return DiscoveryPage();
+          },
+        ),
+      );
+
+      if (selectedDevice != null) {
+        print('Discovery -> selected ' + selectedDevice.address);
+      } else {
+        print('Discovery -> no device selected');
+      }
+    }
+  }
+
+  void askBluetoothScan(){
+  checkBluetoothState();
     setState(() {
       isLoading = true;
     });
-    flutterBlue.startScan(timeout: Duration(seconds: 4));
-    flutterBlue.scanResults.listen((results) {
-      setState(() {
-        devicesList = results.map((r) => r.device).toList();
-        isLoading = false;
+  }
+
+  void checkBluetoothState(){
+    if(!_bluetoothState.isEnabled){
+      future() async {
+          await FlutterBluetoothSerial.instance.requestEnable();
+      }
+      future().then((aux) {
+        if(_bluetoothState.isEnabled){
+          startBluetoothScan();
+        }
+        setState(() {});
       });
-    });
-    flutterBlue.stopScan();
+    } else{
+      startBluetoothScan();
+    }
   }
 
   @override
@@ -72,7 +179,7 @@ class _HomeScreenState extends State<HomeScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 ButtonCustom(
-                  onPressed: startBluetoothScan,
+                  onPressed: askBluetoothScan,
                   color: Color(0xFF005377),
                   icon: Icons.bluetooth_searching,
                   text: 'CONECTAR',
@@ -185,7 +292,7 @@ class DevicesPopUp extends StatelessWidget {
           child: ListBody(
             children: devicesList.map((device) {
               return ListTile(
-                title: Text(device.name),
+                title: Text("ALo"),
                 onTap: () {
                   onConfirmation(device);
                   Navigator.of(context).pop();
