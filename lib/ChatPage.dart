@@ -28,8 +28,7 @@ class _ChatPage extends State<ChatPage> {
   List<_Message> messages = List<_Message>.empty(growable: true);
   String _messageBuffer = '';
 
-  final TextEditingController textEditingController =
-      new TextEditingController();
+  final TextEditingController textEditingController = new TextEditingController();
   final ScrollController listScrollController = new ScrollController();
 
   bool isConnecting = true;

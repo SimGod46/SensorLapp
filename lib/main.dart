@@ -14,13 +14,18 @@ class ExampleApplication extends StatelessWidget {
 */
 
 import 'dart:async';
-import 'dart:ffi';
-
+import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
-
 import 'BackgroundCollectingTask.dart';
-import 'DiscoveryPage.dart';
+
+class _Message {
+  int whom;
+  String text;
+
+  _Message(this.whom, this.text);
+}
 
 void main() {
   runApp(Datapp());
@@ -33,6 +38,15 @@ class Datapp extends StatelessWidget {
       title: 'Datapp',
       theme: ThemeData(
         primarySwatch: Colors.blue,
+        textButtonTheme: TextButtonThemeData(
+          style: TextButton.styleFrom(
+            foregroundColor: Color(0xFF005377), // Cambia el color del texto del botón
+            //backgroundColor: Colors.orange, // Cambia el color de fondo del botón
+          ),
+        ),
+        radioTheme: RadioThemeData(
+          fillColor: WidgetStateColor.resolveWith((states) => Color(0xFF005377)), // Cambia el color del radio button
+        ),
       ),
       home: HomeScreen(),
     );
@@ -46,9 +60,9 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   BluetoothState _bluetoothState = BluetoothState.UNKNOWN;
-  List<BluetoothDevice> devicesList = [];
-  bool isLoading = false;
   bool isConnected = false;
+
+  bool connectButtonPress = false;
   String _address = "...";
   String _name = "...";
 
@@ -59,6 +73,24 @@ class _HomeScreenState extends State<HomeScreen> {
 
   bool _autoAcceptPairingRequests = false;
 
+  //Discovery...
+  StreamSubscription<BluetoothDiscoveryResult>? _streamSubscription;
+  List<BluetoothDiscoveryResult> discoveryResults = List<BluetoothDiscoveryResult>.empty(growable: true);
+  bool isDiscovering = false;
+
+  //Connection
+  static final clientID = 0;
+  BluetoothConnection? connection;
+  List<_Message> messages = List<_Message>.empty(growable: true);
+  String _messageBuffer = '';
+
+  final TextEditingController textEditingController = new TextEditingController();
+  final ScrollController listScrollController = new ScrollController();
+
+  bool isConnecting = true;
+  //bool get isConnected => (connection?.isConnected ?? false);
+
+  bool isDisconnecting = false;
   @override
   void initState() {
     super.initState();
@@ -116,28 +148,44 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> startBluetoothScan() async {
     if(_bluetoothState.isEnabled){
-      final BluetoothDevice? selectedDevice =
-      await Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (context) {
-            return DiscoveryPage();
-          },
-        ),
-      );
-
+      _startDiscovery();
+      /*
+      final BluetoothDevice? selectedDevice = null;
       if (selectedDevice != null) {
         print('Discovery -> selected ' + selectedDevice.address);
       } else {
         print('Discovery -> no device selected');
       }
+       */
     }
   }
 
-  void askBluetoothScan(){
-  checkBluetoothState();
-    setState(() {
-      isLoading = true;
+  void _startDiscovery() {
+    _streamSubscription =
+        FlutterBluetoothSerial.instance.startDiscovery().listen((r) {
+          isDiscovering = true;
+          if(r.device.name != null){
+            setState(() {
+              final existingIndex =
+              discoveryResults.indexWhere((element) => element.device.address == r.device.address);
+              if (existingIndex >= 0)
+                discoveryResults[existingIndex] = r;
+              else
+                discoveryResults.add(r);
+            });
+          }
+        });
+
+    _streamSubscription!.onDone(() {
+      setState(() {
+        isDiscovering = false;
+      });
     });
+  }
+
+  void askBluetoothScan(){
+    connectButtonPress = true;
+    checkBluetoothState();
   }
 
   void checkBluetoothState(){
@@ -154,6 +202,110 @@ class _HomeScreenState extends State<HomeScreen> {
     } else{
       startBluetoothScan();
     }
+  }
+
+  void _onDataReceived(Uint8List data) {
+    // Allocate buffer for parsed data
+    int backspacesCounter = 0;
+    data.forEach((byte) {
+      if (byte == 8 || byte == 127) {
+        backspacesCounter++;
+      }
+    });
+    Uint8List buffer = Uint8List(data.length - backspacesCounter);
+    int bufferIndex = buffer.length;
+
+    // Apply backspace control character
+    backspacesCounter = 0;
+    for (int i = data.length - 1; i >= 0; i--) {
+      if (data[i] == 8 || data[i] == 127) {
+        backspacesCounter++;
+      } else {
+        if (backspacesCounter > 0) {
+          backspacesCounter--;
+        } else {
+          buffer[--bufferIndex] = data[i];
+        }
+      }
+    }
+
+    // Create message if there is new line character
+    String dataString = String.fromCharCodes(buffer);
+    int index = buffer.indexOf(13);
+    if (~index != 0) {
+      setState(() {
+        messages.add(
+          _Message(
+            1,
+            backspacesCounter > 0
+                ? _messageBuffer.substring(
+                0, _messageBuffer.length - backspacesCounter)
+                : _messageBuffer + dataString.substring(0, index),
+          ),
+        );
+        _messageBuffer = dataString.substring(index);
+      });
+    } else {
+      _messageBuffer = (backspacesCounter > 0
+          ? _messageBuffer.substring(
+          0, _messageBuffer.length - backspacesCounter)
+          : _messageBuffer + dataString);
+    }
+  }
+
+  void _sendMessage(String text) async {
+    text = text.trim();
+    textEditingController.clear();
+
+    if (text.length > 0) {
+      try {
+        connection!.output.add(Uint8List.fromList(utf8.encode(text + "\r\n")));
+        await connection!.output.allSent;
+
+        Future.delayed(Duration(milliseconds: 333)).then((_) {
+          listScrollController.animateTo(
+              listScrollController.position.maxScrollExtent,
+              duration: Duration(milliseconds: 333),
+              curve: Curves.easeOut);
+        });
+      } catch (e) {
+        // Ignore error, but notify state
+        setState(() {});
+      }
+    }
+  }
+
+  void connectBluetooth(BluetoothDiscoveryResult server){
+    BluetoothConnection.toAddress(server.device.address).then((_connection) {
+      print('Connected to the device');
+      connection = _connection;
+      setState(() {
+        isConnected = true;
+        //isConnecting = false;
+        //isDisconnecting = false;
+      });
+      _sendMessage("1"); // Test de conexión
+      connection!.input!.listen(_onDataReceived).onDone(() {
+        // Example: Detect which side closed the connection
+        // There should be `isDisconnecting` flag to show are we are (locally)
+        // in middle of disconnecting process, should be set before calling
+        // `dispose`, `finish` or `close`, which all causes to disconnect.
+        // If we except the disconnection, `onDone` should be fired as result.
+        // If we didn't except this (no flag set), it means closing by remote.
+        if (isDisconnecting) {
+          print('Disconnecting locally!');
+        } else {
+          print('Disconnected remotely!');
+        }
+        if (this.mounted) {
+          setState(() {});
+        }
+      });
+
+    }).catchError((error) {
+      print('Cannot connect, exception occured');
+      print(error);
+    });;
   }
 
   @override
@@ -179,62 +331,48 @@ class _HomeScreenState extends State<HomeScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 ButtonCustom(
-                  onPressed: askBluetoothScan,
                   color: Color(0xFF005377),
                   icon: Icons.bluetooth_searching,
                   text: 'CONECTAR',
                   enabled: true,
+                  onPressed: askBluetoothScan,
                 ),
                 const SizedBox(height: 20),
                 ButtonCustom(
-                  onPressed: () {
-                    // Lógica para importar
-                    showDialog(
-                      context: context,
-                      builder: (context) => AlertDialog(
-                        title: Text("Sample test"),
-                        content: Text("aqui deberia aparecer algo asi como confirmar, no sé no me acuerdo..."),
-                        actions: [
-                          TextButton(
-                            child: Text("CANCEL"),
-                            onPressed: () => Navigator.pop(context)
-                          ),
-                          TextButton(
-                            child: Text("OK"),
-                            onPressed: () => Navigator.pop(context)
-                          )
-                        ]
-                      )
-                    );
-                  },
                   color: Color(0xFF27273F),
                   icon: Icons.archive,
                   text: 'IMPORTAR',
                   enabled: isConnected,
+                  onPressed: () {
+                    _sendMessage("2");
+                  },
                 ),
                 SizedBox(height: 20),
                 ButtonCustom(
-                  onPressed: () {
-                    // Lógica para eliminar
-                  },
                   color: Color(0xFF06A77D),
                   icon: Icons.delete,
                   text: 'ELIMINAR',
                   enabled: isConnected,
+                  onPressed: () {
+                    // Lógica para eliminar
+                  },
                 ),
               ],
             )
           ),
-          if (isLoading)
+          if (isDiscovering && connectButtonPress)
             Center(
               child: CircularProgressIndicator(),
             ),
-          if (!isLoading && devicesList.isNotEmpty)
+          if (discoveryResults.isNotEmpty && connectButtonPress) // TODO: Verificar que se haya presionado el botón
             DevicesPopUp(
-              devicesList: devicesList,
-              onDismiss: () {},
+              devicesList: discoveryResults,
+              onDismiss: () {
+                discoveryResults = List.empty(growable: true);
+                connectButtonPress = false;},
               onConfirmation: (device) {
-                // Lógica de conexión al dispositivo
+                connectBluetooth(device);
+                connectButtonPress = false;
               },
             ),
         ],
@@ -274,28 +412,42 @@ class ButtonCustom extends StatelessWidget {
   }
 }
 
-class DevicesPopUp extends StatelessWidget {
-  final List<BluetoothDevice> devicesList;
+class DevicesPopUp extends StatefulWidget {
+  final List<BluetoothDiscoveryResult> devicesList;
   final VoidCallback onDismiss;
-  final Function(BluetoothDevice) onConfirmation;
+  final Function(BluetoothDiscoveryResult) onConfirmation;
 
-  DevicesPopUp({required this.devicesList, required this.onDismiss, required this.onConfirmation});
+  DevicesPopUp({
+    required this.devicesList,
+    required this.onDismiss,
+    required this.onConfirmation,
+  });
+
+  @override
+  _DevicesPopUpState createState() => _DevicesPopUpState();
+}
+
+class _DevicesPopUpState extends State<DevicesPopUp> {
+  BluetoothDiscoveryResult? deviceSelected;
 
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
       title: Text('Dispositivos cercanos'),
       content: Container(
-        height: 200.0, // Fija la altura del contenedor
-        width: double.maxFinite, // Ajusta el ancho a las necesidades
+        height: 300,
+        width: double.maxFinite,
         child: SingleChildScrollView(
           child: ListBody(
-            children: devicesList.map((device) {
-              return ListTile(
-                title: Text("ALo"),
-                onTap: () {
-                  onConfirmation(device);
-                  Navigator.of(context).pop();
+            children: widget.devicesList.map((device) {
+              return RadioListTile<BluetoothDiscoveryResult>(
+                title: Text(device.device.name ?? 'Dispositivo sin nombre'),
+                value: device,
+                groupValue: deviceSelected,
+                onChanged: (BluetoothDiscoveryResult? value) {
+                  setState(() {
+                    deviceSelected = value;
+                  });
                 },
               );
             }).toList(),
@@ -304,8 +456,13 @@ class DevicesPopUp extends StatelessWidget {
       ),
       actions: [
         TextButton(
-          onPressed: onDismiss,
+          onPressed: widget.onDismiss,
           child: Text('Cancelar'),
+        ),
+        TextButton(
+          onPressed: deviceSelected != null ? () => widget.onConfirmation(deviceSelected!) : null,
+          //style: TextButton.styleFrom(foregroundColor: Color(0xBB005377)),
+          child: Text('Aceptar'),
         ),
       ],
     );
