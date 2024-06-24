@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:provider/provider.dart';
 
 import 'main.dart';
@@ -12,22 +13,15 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  late BluetoothManager _bluetoothManager ;// = Provider.of<BluetoothManager>(context);
+  late BluetoothManager _bluetoothManager;// = Provider.of<BluetoothManager>(context);
   bool connectButtonPress = false;
-
+  bool isDialogOpen = false;
   final TextEditingController textEditingController = new TextEditingController();
   final ScrollController listScrollController = new ScrollController();
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _bluetoothManager = Provider.of<BluetoothManager>(context, listen: true);
-      _bluetoothManager.startListeningToBluetoothState();
-      _bluetoothManager.testCallbacks();
-    });
-    // Get current state
-    //
   }
 
   @override
@@ -45,6 +39,31 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     _bluetoothManager = Provider.of<BluetoothManager>(context, listen: true);
+    if (_bluetoothManager.discoveryResults.isNotEmpty && connectButtonPress && !isDialogOpen){
+      isDialogOpen = true;
+      SchedulerBinding.instance.addPostFrameCallback((_) {
+        showDialog(
+            context: context,
+            builder: (BuildContext context) {
+              return DevicesPopUp(
+                devicesList: _bluetoothManager.discoveryResults,
+                onDismiss: () {
+                  //discoveryResults = List.empty(growable: true);
+                  isDialogOpen = false;
+                  connectButtonPress = false;
+                  Navigator.pop(context);
+                  },
+                onConfirmation: (device) {
+                  _bluetoothManager.connectToDevice(device);
+                  isDialogOpen = false;
+                  connectButtonPress = false;
+                  Navigator.pop(context);
+                },
+              );
+            }
+        );
+      });
+    }
     return Scaffold(
       appBar: AppBar(
         title: Text('Datapp'),
@@ -137,20 +156,10 @@ class _HomePageState extends State<HomePage> {
                 ],
               )
           ),
+
           if (_bluetoothManager.isDiscovering&& connectButtonPress)
             Center(
               child: CircularProgressIndicator(),
-            ),
-          if (_bluetoothManager.discoveryResults.isNotEmpty && connectButtonPress) // TODO: Verificar que se haya presionado el botón
-            DevicesPopUp(
-              devicesList: _bluetoothManager.discoveryResults,
-              onDismiss: () {
-                //discoveryResults = List.empty(growable: true);
-                connectButtonPress = false;},
-              onConfirmation: (device) {
-                _bluetoothManager.connectToDevice(device);
-                connectButtonPress = false;
-              },
             ),
         ],
       ),

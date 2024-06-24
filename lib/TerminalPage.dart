@@ -1,10 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import 'BluetoothViewmodel.dart';
 
 class TerminalPage extends StatelessWidget {
   const TerminalPage({super.key});
 
   @override
   Widget build(BuildContext context) {
+    BluetoothManager _bluetoothManager = Provider.of<BluetoothManager>(context, listen: true);
+    final _textinfield = TextEditingController();
+    var newtext = "";
     return Scaffold(
       appBar: AppBar(
         title: const Text('Terminal'),
@@ -20,6 +26,8 @@ class TerminalPage extends StatelessWidget {
               Expanded(
                 child:
                 TextField(
+                  controller: _textinfield,
+                  onChanged: (txt)=> newtext = txt,
                   decoration: InputDecoration(
                   hintText: 'Ingrese su mensaje...',
                   border: OutlineInputBorder(),
@@ -31,7 +39,8 @@ class TerminalPage extends StatelessWidget {
                 icon: Icon(Icons.send), // Icono de avión de papel
                 onPressed: () {
                 // Acción al presionar el botón (enviar mensaje, por ejemplo)
-                print('Mensaje enviado!');
+                _textinfield.clear();
+                _bluetoothManager.sendMessage(newtext);
                 },
               ),],
             ),

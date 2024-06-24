@@ -8,6 +8,15 @@ import 'package:path_provider/path_provider.dart';
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
 
 class BluetoothManager extends ChangeNotifier{
+  static BluetoothManager? _instance;
+
+  BluetoothManager._(){
+    startListeningToBluetoothState();
+    testCallbacks();
+  }
+
+  factory BluetoothManager() => _instance ??= BluetoothManager._();
+
   BluetoothState _bluetoothState = BluetoothState.UNKNOWN;
   StreamSubscription<BluetoothDiscoveryResult>? _streamSubscription;
 
@@ -44,6 +53,7 @@ class BluetoothManager extends ChangeNotifier{
 
   void bluetoothDeviceFound(BluetoothDiscoveryResult device){
     if(device.device.name != null){
+        print("Founded: ${device.device.name}");
         final existingIndex = _discoveryResults.indexWhere((element) => element.device.address == device.device.address);
         if (existingIndex >= 0){
           _discoveryResults[existingIndex] = device;
@@ -57,8 +67,18 @@ class BluetoothManager extends ChangeNotifier{
 
   Future<void> startBluetoothScan() async {
     if (_bluetoothState.isEnabled) {
+      /*
+      await FlutterBluetoothSerial.instance.isDiscovering.then((onValue){
+        if(onValue ?? false){
+          FlutterBluetoothSerial.instance.cancelDiscovery();
+        }
+      }
+      );
+       */
+
       _streamSubscription = FlutterBluetoothSerial.instance.startDiscovery().listen((r) {
         isDiscovering = true;
+        print(">Device scanded at: ${r.device.address}");
         if (r.device.name != null) {
           bluetoothDeviceFound(r);
         }
@@ -67,6 +87,7 @@ class BluetoothManager extends ChangeNotifier{
       _streamSubscription!.onDone(() {
         isDiscovering = false;
       });
+
     } else{
       future() async {
         await FlutterBluetoothSerial.instance.requestEnable();
@@ -99,6 +120,7 @@ class BluetoothManager extends ChangeNotifier{
   }
 
   Future<void> sendMessage(String message) async {
+    print("Trying to send: $message");
     if (_connection != null && _connection!.isConnected) {
       try {
         _connection!.output.add(Uint8List.fromList(utf8.encode(message + "\r\n")));
@@ -153,6 +175,7 @@ class BluetoothManager extends ChangeNotifier{
           if(lastMessageSended == "2"){
             saveListToCSV(messages);
           }
+          print(messages.join("; "));
           messages.clear();
           isEndOfTransmission = false;
         }
