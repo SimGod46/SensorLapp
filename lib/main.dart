@@ -33,12 +33,12 @@ class Datapp extends StatelessWidget {
 }
 
 class DevicesPopUp extends StatefulWidget {
-  final List<BluetoothDiscoveryResult> devicesList;
+  final ValueNotifier<List<BluetoothDiscoveryResult>> devicesNotifier;
   final VoidCallback onDismiss;
   final Function(BluetoothDiscoveryResult) onConfirmation;
 
   DevicesPopUp({
-    required this.devicesList,
+    required this.devicesNotifier,
     required this.onDismiss,
     required this.onConfirmation,
   });
@@ -54,12 +54,16 @@ class _DevicesPopUpState extends State<DevicesPopUp> {
   Widget build(BuildContext context) {
     return AlertDialog(
       title: Text('Dispositivos cercanos'),
-      content: Container(
+      content:
+    ValueListenableBuilder<List<BluetoothDiscoveryResult>>(
+    valueListenable: widget.devicesNotifier,
+    builder: (context, devicesList, child) {
+      return Container(
         height: 300,
         width: double.maxFinite,
         child: SingleChildScrollView(
           child: ListBody(
-            children: widget.devicesList.map((device) {
+            children: widget.devicesNotifier.value.map((device) {
               return RadioListTile<BluetoothDiscoveryResult>(
                 title: Text(device.device.name ?? 'Dispositivo sin nombre'),
                 value: device,
@@ -73,7 +77,7 @@ class _DevicesPopUpState extends State<DevicesPopUp> {
             }).toList(),
           ),
         ),
-      ),
+      );}),
       actions: [
         TextButton(
           onPressed: widget.onDismiss,

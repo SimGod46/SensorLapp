@@ -20,6 +20,9 @@ class BluetoothManager extends ChangeNotifier{
   BluetoothState _bluetoothState = BluetoothState.UNKNOWN;
   StreamSubscription<BluetoothDiscoveryResult>? _streamSubscription;
 
+  final ValueNotifier<List<BluetoothDiscoveryResult>> _discoveryResultsNotifier = ValueNotifier([]);
+  ValueNotifier<List<BluetoothDiscoveryResult>> get discoveryResultsNotifier => _discoveryResultsNotifier;
+
   List<BluetoothDiscoveryResult> _discoveryResults = List<BluetoothDiscoveryResult>.empty(growable: true);
   List<BluetoothDiscoveryResult> get discoveryResults => _discoveryResults;
 
@@ -53,7 +56,6 @@ class BluetoothManager extends ChangeNotifier{
 
   void bluetoothDeviceFound(BluetoothDiscoveryResult device){
     if(device.device.name != null){
-        print("Founded: ${device.device.name}");
         final existingIndex = _discoveryResults.indexWhere((element) => element.device.address == device.device.address);
         if (existingIndex >= 0){
           _discoveryResults[existingIndex] = device;
@@ -61,33 +63,39 @@ class BluetoothManager extends ChangeNotifier{
         else{
           _discoveryResults.add(device);
         }
+        _discoveryResultsNotifier.value = List.from(_discoveryResults); // Update ValueNotifier
         notifyListeners();
     }
   }
 
+  void stopScan(){
+    _discoveryResults = List<BluetoothDiscoveryResult>.empty(growable: true); // Reiniciar lista de valores...
+    FlutterBluetoothSerial.instance.cancelDiscovery();
+  }
+
+  void actionScan(){
+    _discoveryResults = List<BluetoothDiscoveryResult>.empty(growable: true); // Reiniciar lista de valores...
+    _streamSubscription = FlutterBluetoothSerial.instance.startDiscovery().listen((r) {
+      isDiscovering = true;
+      bluetoothDeviceFound(r);
+    });
+    _streamSubscription!.onDone(() {
+      isDiscovering = false;
+      notifyListeners();
+    });
+  }
+
   Future<void> startBluetoothScan() async {
     if (_bluetoothState.isEnabled) {
-      /*
       await FlutterBluetoothSerial.instance.isDiscovering.then((onValue){
         if(onValue ?? false){
-          FlutterBluetoothSerial.instance.cancelDiscovery();
-        }
-      }
-      );
-       */
-
-      _streamSubscription = FlutterBluetoothSerial.instance.startDiscovery().listen((r) {
-        isDiscovering = true;
-        print(">Device scanded at: ${r.device.address}");
-        if (r.device.name != null) {
-          bluetoothDeviceFound(r);
+          FlutterBluetoothSerial.instance.cancelDiscovery().then((_){
+            actionScan();
+          });
+        } else{
+          actionScan();
         }
       });
-
-      _streamSubscription!.onDone(() {
-        isDiscovering = false;
-      });
-
     } else{
       future() async {
         await FlutterBluetoothSerial.instance.requestEnable();
@@ -105,7 +113,7 @@ class BluetoothManager extends ChangeNotifier{
     try {
       _connection = await BluetoothConnection.toAddress(device.device.address);
       isConnected = true;
-
+      notifyListeners();
       sendMessage("1");
 
       _connection!.input!.listen((Uint8List data) {
@@ -116,6 +124,7 @@ class BluetoothManager extends ChangeNotifier{
     } catch (e) {
       print('Error al conectar: $e');
       isConnected = false;
+      notifyListeners();
     }
   }
 
