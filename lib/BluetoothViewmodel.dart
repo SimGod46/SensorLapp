@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'package:csv/csv.dart';
 import 'package:flutter/material.dart';
+import 'package:location/location.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
 
@@ -16,6 +17,9 @@ class BluetoothManager extends ChangeNotifier{
   }
 
   factory BluetoothManager() => _instance ??= BluetoothManager._();
+  Location location = new Location();
+  late bool _LocationServiceEnabled;
+  late PermissionStatus _locationPermissionGranted;
 
   BluetoothState _bluetoothState = BluetoothState.UNKNOWN;
   StreamSubscription<BluetoothDiscoveryResult>? _streamSubscription;
@@ -85,7 +89,30 @@ class BluetoothManager extends ChangeNotifier{
     });
   }
 
+  Future<bool> checkLocationService() async  {
+    _LocationServiceEnabled = await location.serviceEnabled();
+    if (!_LocationServiceEnabled) {
+      _LocationServiceEnabled = await location.requestService();
+      if (!_LocationServiceEnabled) {
+        return false;
+      }
+    }
+
+    _locationPermissionGranted = await location.hasPermission();
+    if (_locationPermissionGranted == PermissionStatus.denied) {
+      _locationPermissionGranted = await location.requestPermission();
+      if (_locationPermissionGranted != PermissionStatus.granted) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   Future<void> startBluetoothScan() async {
+    var gpsEnabled = await checkLocationService();
+    if(!gpsEnabled){
+      return;
+    }
     if (_bluetoothState.isEnabled) {
       await FlutterBluetoothSerial.instance.isDiscovering.then((onValue){
         if(onValue ?? false){
