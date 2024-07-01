@@ -38,10 +38,44 @@ class _HomePageState extends State<HomePage> {
     _bluetoothManager.startBluetoothScan();
   }
 
+  Future<void> _showMyDialog(String titleText, String bodyText, VoidCallback onAccept) async {
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false, // user must tap button!
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(titleText),
+          content: SingleChildScrollView(
+            child: ListBody(
+              children: <Widget>[
+                Text(bodyText),
+                //Text('Would you like to approve of this message?'),
+              ],
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Cancelar'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              child: const Text('Aceptar'),
+              onPressed: () {
+                onAccept();
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     _bluetoothManager = Provider.of<BluetoothManager>(context, listen: true);
-    print("Esto me llega: ${_bluetoothManager.discoveryResults.map((d)=>d.device.name).join(", ")}");
     return Scaffold(
       appBar: AppBar(
         title: Text('Datapp'),
@@ -130,46 +164,57 @@ class _HomePageState extends State<HomePage> {
                     text: 'ELIMINAR',
                     enabled: _bluetoothManager.isConnected,
                     onPressed: () {
-                      // Lógica para eliminar
+                      _showMyDialog("Eliminar datos", "¿Estas seguro que desea elminar todos los datos de la tarjeta de memoria?",(){});
+                      //;
                     },
                   ),
-                    ValueListenableBuilder(
-                        valueListenable: _bluetoothManager.discoveryResultsNotifier,
-                        builder: (ctx, value, child) {
-                          if (value.isNotEmpty && connectButtonPress && !isDialogOpen) {
-                          isDialogOpen = true;
-                          Future.delayed(const Duration(seconds: 0), () {
-                            showDialog(
-                                context: ctx,
-                                builder: (ctx) {
-                                  return DevicesPopUp(
-                                    devicesNotifier: _bluetoothManager.discoveryResultsNotifier,
-                                    onDismiss: () {
-                                      _bluetoothManager.stopScan();
-                                      isDialogOpen = false;
-                                      connectButtonPress = false;
-                                      Navigator.pop(context);
-                                      },
-                                    onConfirmation: (device) {
-                                      _bluetoothManager.stopScan();
-                                      _bluetoothManager.connectToDevice(device);
-                                      isDialogOpen = false;
-                                      connectButtonPress = false;
-                                      Navigator.pop(context);
+                  /*
+                  ValueListenableBuilder(
+                    valueListenable: _bluetoothManager.isDiscovering,
+                    builder: (ctx, value, child) {
+                      if (value && connectButtonPress) {
+                        isDialogOpen = true;
+                        Future.delayed(const Duration(seconds: 0), () {
+                          showDialog(
+                          context: ctx,
+                          builder: (ctx) {
+                            return Center(child: CircularProgressIndicator(),);
+                          });});
+                        } return const SizedBox();}
+                  ),
+                   */
+                  ValueListenableBuilder(
+                      valueListenable: _bluetoothManager.discoveryResultsNotifier,
+                      builder: (ctx, value, child) {
+                        if (value.isNotEmpty && connectButtonPress && !isDialogOpen) {
+                        isDialogOpen = true;
+                        Future.delayed(const Duration(seconds: 0), () {
+                          showDialog(
+                              context: ctx,
+                              builder: (ctx) {
+                                return DevicesPopUp(
+                                  devicesNotifier: _bluetoothManager.discoveryResultsNotifier,
+                                  onDismiss: () {
+                                    _bluetoothManager.stopScan();
+                                    isDialogOpen = false;
+                                    connectButtonPress = false;
+                                    Navigator.pop(context);
                                     },
-                                  );
-                                });
-                          });}
-                          return const SizedBox();
-                    })
+                                  onConfirmation: (device) {
+                                    _bluetoothManager.stopScan();
+                                    _bluetoothManager.connectToDevice(device, "1");
+                                    isDialogOpen = false;
+                                    connectButtonPress = false;
+                                    Navigator.pop(context);
+                                  },
+                                );
+                              });
+                        });}
+                        return const SizedBox();
+                  })
                 ],
               )
           ),
-
-          if (_bluetoothManager.isDiscovering && connectButtonPress)
-            Center(
-              child: CircularProgressIndicator(),
-            ),
         ],
       ),
     );

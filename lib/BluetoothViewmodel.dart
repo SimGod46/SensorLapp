@@ -1,11 +1,9 @@
-import 'dart:io';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
-import 'package:csv/csv.dart';
 import 'package:flutter/material.dart';
 import 'package:location/location.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:sensor_lapp/SensorsViewmodel.dart';
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
 
 class BluetoothManager extends ChangeNotifier{
@@ -13,7 +11,6 @@ class BluetoothManager extends ChangeNotifier{
 
   BluetoothManager._(){
     startListeningToBluetoothState();
-    testCallbacks();
   }
 
   factory BluetoothManager() => _instance ??= BluetoothManager._();
@@ -40,7 +37,7 @@ class BluetoothManager extends ChangeNotifier{
   List<String> messages = List<String>.empty(growable: true);
   String _messageBuffer = '';
   String lastMessageSended = "";
-
+  SensorsManager logicManager = SensorsManager();
   void startListeningToBluetoothState() {
     FlutterBluetoothSerial.instance.state.then((state) {
       _bluetoothState = state;
@@ -52,10 +49,6 @@ class BluetoothManager extends ChangeNotifier{
       notifyListeners();
       // Aquí puedes realizar acciones adicionales cuando cambie el estado de Bluetooth
     });
-  }
-
-  void testCallbacks(){
-    print("se llamó de nuevo a la funcion");
   }
 
   void bluetoothDeviceFound(BluetoothDiscoveryResult device){
@@ -136,17 +129,21 @@ class BluetoothManager extends ChangeNotifier{
     }
   }
 
-  Future<void> connectToDevice(BluetoothDiscoveryResult device) async {
+  Future<void> connectToDevice(BluetoothDiscoveryResult device, String? initMessage) async {
     try {
       _connection = await BluetoothConnection.toAddress(device.device.address);
       isConnected = true;
       notifyListeners();
-      sendMessage("1");
+      if(initMessage !=null){
+        sendMessage(initMessage);
+      }
 
-      _connection!.input!.listen((Uint8List data) {
-        // Lógica para manejar datos recibidos
-      }).onDone(() {
-        // Lógica para manejar la desconexión
+      _connection!.input!.listen(onDataReceived).onDone(() {
+        if (!isConnected) {
+          print('Disconnecting locally!');
+        } else {
+          print('Disconnected remotely!');
+        }
       });
     } catch (e) {
       print('Error al conectar: $e');
@@ -200,28 +197,24 @@ class BluetoothManager extends ChangeNotifier{
 
     // Create message if there is new line character
     String dataString = String.fromCharCodes(buffer);
-    int index = buffer.indexOf(13);
+    int index = buffer.indexOf(13); // se busca el Carriage return, si no es carriage return, es otro mensaje...
     if (~index != 0) {
         messages.add(
             backspacesCounter > 0 ?
             _messageBuffer.substring(0, _messageBuffer.length - backspacesCounter) :
             _messageBuffer + dataString.substring(0, index),
         );
-        if(isEndOfTransmission){
-          if(lastMessageSended == "2"){
-            saveListToCSV(messages);
-          }
-          print(messages.join("; "));
-          messages.clear();
-          isEndOfTransmission = false;
-        }
         _messageBuffer = dataString.substring(index);
-        //notifyListeners();
     } else {
       _messageBuffer = (
           backspacesCounter > 0 ?
           _messageBuffer.substring(0, _messageBuffer.length - backspacesCounter) :
           _messageBuffer + dataString);
+    }
+    if(isEndOfTransmission){
+      isEndOfTransmission = false;
+      logicManager.getMessageFromBT(lastMessageSended, List.from(messages));
+      messages.clear();
     }
   }
 
@@ -231,31 +224,5 @@ class BluetoothManager extends ChangeNotifier{
     FlutterBluetoothSerial.instance.setPairingRequestHandler(null);
     _streamSubscription?.cancel();
     _connection?.dispose();
-  }
-
-  Future<void> saveListToCSV(List<String> messages) async {
-    try {
-      // Obtener el directorio de documentos del dispositivo
-      final directory = await getApplicationDocumentsDirectory();
-      final path = directory.path;
-
-      // Crear el archivo CSV
-      File file = File('$path/lista.csv');
-
-      List<List<dynamic>> csvData = [
-        ['Text'], // Encabezados de las columnas
-        for (var message in messages) [message]
-      ];
-
-      // Convertir los datos a formato CSV
-      String csv = ListToCsvConverter().convert(csvData);
-
-      // Escribir los datos al archivo CSV
-      await file.writeAsString(csv);
-
-      print('Archivo CSV guardado en: $path/lista.csv');
-    } catch (e) {
-      print('Error al guardar el archivo CSV: $e');
-    }
   }
 }

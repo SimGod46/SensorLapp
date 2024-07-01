@@ -3,12 +3,28 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
 import 'package:sensor_lapp/BluetoothViewmodel.dart';
 import 'HomePage.dart';
+import 'NotificationViewmodel.dart';
 
 void main() {
   runApp(Datapp());
 }
 
-class Datapp extends StatelessWidget {
+Future backgroundHandler(String msg) async {}
+
+class Datapp extends StatefulWidget {
+  const Datapp({Key? key}) : super(key: key);
+  @override
+  State<Datapp> createState() => _Datapp();
+}
+
+class _Datapp extends State<Datapp> {
+  @override
+  void initState() {
+    super.initState();
+    // Initialise  localnotification
+    LocalNotificationService.initialize();
+  }
+
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
