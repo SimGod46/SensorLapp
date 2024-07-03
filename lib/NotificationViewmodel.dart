@@ -21,7 +21,6 @@ class LocalNotificationService {
 
   static void performAction(String? payload) {
     if(payload != null){
-      print("Este es el payload que me llega: $payload");
       openFile(payload);
     }
   }

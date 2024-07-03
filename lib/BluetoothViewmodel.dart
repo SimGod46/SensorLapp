@@ -199,12 +199,12 @@ class BluetoothManager extends ChangeNotifier{
     String dataString = String.fromCharCodes(buffer);
     int index = buffer.indexOf(13); // se busca el Carriage return, si no es carriage return, es otro mensaje...
     if (~index != 0) {
-        messages.add(
-            backspacesCounter > 0 ?
-            _messageBuffer.substring(0, _messageBuffer.length - backspacesCounter) :
-            _messageBuffer + dataString.substring(0, index),
-        );
-        _messageBuffer = dataString.substring(index);
+      String newMessage = backspacesCounter > 0 ?
+      _messageBuffer.substring(0, _messageBuffer.length - backspacesCounter) :
+      _messageBuffer + dataString.substring(0, index);
+
+      messages.add(newMessage.trim());
+      _messageBuffer = dataString.substring(index);
     } else {
       _messageBuffer = (
           backspacesCounter > 0 ?

@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:csv/csv.dart';
 import 'package:intl/intl.dart';
+import 'HomePage.dart';
 import 'NotificationViewmodel.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart' as permissions;
@@ -8,14 +9,25 @@ import 'package:permission_handler/permission_handler.dart' as permissions;
 
 class SensorsManager{
   getMessageFromBT(String lastMessageSended, List<String> currentMessages){
+    DrawerItemsState drawerItemsState = DrawerItemsState();
+
+    if(lastMessageSended == "1"){
+      drawerItemsState.setItemVisibility("Terminal", true);
+
+      var listOfSensors = currentMessages.first.split(",");
+      for(var sensor in listOfSensors){
+        var sensorAddress = sensor.split(":").first;
+        var sensorName = sensor.split(":").last;
+        drawerItemsState.setItemVisibility(sensorName, true);
+      }
+      // TODO: Configurar el tamaño del archivo
+    }
+
     if(currentMessages.first!="OK"){
       return;
     }
     currentMessages = currentMessages.sublist(1);
-    if(lastMessageSended == "1"){
-      // 1) Configurar dispositivos disponibles
-      // 2) Configurar el tamaño del archivo
-    }
+
     if(lastMessageSended == "2"){
       saveListToCSV(currentMessages);
     }
@@ -35,7 +47,7 @@ class SensorsManager{
       File file = File('$path/Sensorlapp_record_$formatedTime.csv');
 
       List<List<dynamic>> csvData = [
-        for (var message in messages) message.trim().split(",")
+        for (var message in messages) message.split(",")
       ];
 
       // Convertir los datos a formato CSV

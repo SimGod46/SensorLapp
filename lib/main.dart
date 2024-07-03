@@ -27,8 +27,11 @@ class _Datapp extends State<Datapp> {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (context) => BluetoothManager(),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (context) => BluetoothManager()),
+        ChangeNotifierProvider(create: (context) => DrawerItemsState()),
+      ],
       child: MaterialApp(
         title: 'Datapp',
         theme: ThemeData(

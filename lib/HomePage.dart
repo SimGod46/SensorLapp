@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
-import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
 import 'package:provider/provider.dart';
 
 import 'main.dart';
@@ -15,6 +14,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   late BluetoothManager _bluetoothManager;
+
   bool connectButtonPress = false;
   bool isDialogOpen = false;
   final TextEditingController textEditingController = new TextEditingController();
@@ -76,6 +76,8 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     _bluetoothManager = Provider.of<BluetoothManager>(context, listen: true);
+    var drawerItemsState = Provider.of<DrawerItemsState>(context);
+
     return Scaffold(
       appBar: AppBar(
         title: Text('Datapp'),
@@ -93,6 +95,7 @@ class _HomePageState extends State<HomePage> {
                 );
               },
             ),
+            if (drawerItemsState.itemsVisibility["Terminal"] == true)
             ListTile(
               title: const Text("Terminal"),
               onTap: () {
@@ -103,18 +106,28 @@ class _HomePageState extends State<HomePage> {
                 );
               },
             ),
+            if (drawerItemsState.itemsVisibility["PH"] == true)
             ListTile(
               title: const Text("PH"),
               onTap: () {
                 Navigator.pop(context);
               },
             ),
+            if (drawerItemsState.itemsVisibility["O2"] == true)
             ListTile(
               title: const Text("O2"),
               onTap: () {
                 Navigator.pop(context);
               },
             ),
+            if (drawerItemsState.itemsVisibility["EC"] == true)
+              ListTile(
+                title: const Text("EC"),
+                onTap: () {
+                  Navigator.pop(context);
+                },
+              ),
+            if (drawerItemsState.itemsVisibility["ORP"] == true)
             ListTile(
               title: const Text("ORP"),
               onTap: () {
@@ -218,5 +231,30 @@ class _HomePageState extends State<HomePage> {
         ],
       ),
     );
+  }
+}
+class DrawerItemsState extends ChangeNotifier {
+  static DrawerItemsState? _instance;
+
+  DrawerItemsState._(){
+    //startListeningToBluetoothState();
+  }
+
+  factory DrawerItemsState() => _instance ??= DrawerItemsState._();
+
+  Map<String, bool> itemsVisibility = {
+    "Inicio": true,
+    "Terminal": false,
+    "PH": false,
+    "O2": false,
+    "ORP": false,
+    "EC": false,
+  };
+
+  void setItemVisibility(String item, bool isVisible) {
+    if (itemsVisibility.containsKey(item)) {
+      itemsVisibility[item] = isVisible;
+      notifyListeners();
+    }
   }
 }
