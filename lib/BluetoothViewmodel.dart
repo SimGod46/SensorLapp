@@ -129,9 +129,9 @@ class BluetoothManager extends ChangeNotifier{
     }
   }
 
-  Future<void> connectToDevice(BluetoothDiscoveryResult device, String? initMessage) async {
+  Future<void> connectToDevice(String deviceAdress, String? initMessage) async {
     try {
-      _connection = await BluetoothConnection.toAddress(device.device.address);
+      _connection = await BluetoothConnection.toAddress(deviceAdress);
       isConnected = true;
       notifyListeners();
       if(initMessage !=null){

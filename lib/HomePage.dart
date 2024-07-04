@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/scheduler.dart';
 import 'package:provider/provider.dart';
 
-import 'main.dart';
 import 'Utils.dart';
 import 'TerminalPage.dart';
 import 'BluetoothViewmodel.dart';
@@ -38,41 +36,6 @@ class _HomePageState extends State<HomePage> {
     _bluetoothManager.startBluetoothScan();
   }
 
-  Future<void> _showMyDialog(String titleText, String bodyText, VoidCallback onAccept) async {
-    return showDialog<void>(
-      context: context,
-      barrierDismissible: false, // user must tap button!
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text(titleText),
-          content: SingleChildScrollView(
-            child: ListBody(
-              children: <Widget>[
-                Text(bodyText),
-                //Text('Would you like to approve of this message?'),
-              ],
-            ),
-          ),
-          actions: <Widget>[
-            TextButton(
-              child: const Text('Cancelar'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-            TextButton(
-              child: const Text('Aceptar'),
-              onPressed: () {
-                onAccept();
-                Navigator.of(context).pop();
-              },
-            ),
-          ],
-        );
-      },
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     _bluetoothManager = Provider.of<BluetoothManager>(context, listen: true);
@@ -80,62 +43,18 @@ class _HomePageState extends State<HomePage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Datapp'),
-      ),
-      drawer: Drawer(
-        child: ListView(
-          children: [
-            ListTile(
-              title: const Text("Inicio"),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => Datapp()),
-                );
-              },
+        backgroundColor: Colors.white,
+        iconTheme: IconThemeData(color: AppColors.primaryColor),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: SizedBox(
+              width: 24,
+              height: 24,
+              child: Image.asset('assets/logo_cmas.png'),
             ),
-            if (drawerItemsState.itemsVisibility["Terminal"] == true)
-            ListTile(
-              title: const Text("Terminal"),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const TerminalPage()),
-                );
-              },
-            ),
-            if (drawerItemsState.itemsVisibility["PH"] == true)
-            ListTile(
-              title: const Text("PH"),
-              onTap: () {
-                Navigator.pop(context);
-              },
-            ),
-            if (drawerItemsState.itemsVisibility["O2"] == true)
-            ListTile(
-              title: const Text("O2"),
-              onTap: () {
-                Navigator.pop(context);
-              },
-            ),
-            if (drawerItemsState.itemsVisibility["EC"] == true)
-              ListTile(
-                title: const Text("EC"),
-                onTap: () {
-                  Navigator.pop(context);
-                },
-              ),
-            if (drawerItemsState.itemsVisibility["ORP"] == true)
-            ListTile(
-              title: const Text("ORP"),
-              onTap: () {
-                Navigator.pop(context);
-              },
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
       body: Stack(
         children: [
@@ -148,54 +67,19 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
           Center(
+            child: SingleChildScrollView(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   ButtonCustom(
-                    color: Color(0xFF005377),
+                    color: AppColors.primaryColor,
                     icon: Icons.bluetooth_searching,
-                    text: 'CONECTAR',
-                    enabled: true,
+                    text: 'Conectar',
                     onPressed: (){
                       askBluetoothScan();
                     },
                   ),
-                  SizedBox(height: 20),
-                  ButtonCustom(
-                    color: Color(0xFF27273F),
-                    icon: Icons.archive,
-                    text: 'IMPORTAR',
-                    enabled: _bluetoothManager.isConnected,
-                    onPressed: () {
-                      _bluetoothManager.sendMessage("2");
-                    },
-                  ),
-                  SizedBox(height: 20),
-                  ButtonCustom(
-                    color: Color(0xFF06A77D),
-                    icon: Icons.delete,
-                    text: 'ELIMINAR',
-                    enabled: _bluetoothManager.isConnected,
-                    onPressed: () {
-                      _showMyDialog("Eliminar datos", "¿Estas seguro que desea elminar todos los datos de la tarjeta de memoria?",(){});
-                      //;
-                    },
-                  ),
-                  /*
-                  ValueListenableBuilder(
-                    valueListenable: _bluetoothManager.isDiscovering,
-                    builder: (ctx, value, child) {
-                      if (value && connectButtonPress) {
-                        isDialogOpen = true;
-                        Future.delayed(const Duration(seconds: 0), () {
-                          showDialog(
-                          context: ctx,
-                          builder: (ctx) {
-                            return Center(child: CircularProgressIndicator(),);
-                          });});
-                        } return const SizedBox();}
-                  ),
-                   */
+                  //MyCustomCard(),
                   ValueListenableBuilder(
                       valueListenable: _bluetoothManager.discoveryResultsNotifier,
                       builder: (ctx, value, child) {
@@ -213,9 +97,9 @@ class _HomePageState extends State<HomePage> {
                                     connectButtonPress = false;
                                     Navigator.pop(context);
                                     },
-                                  onConfirmation: (device) {
+                                  onConfirmation: (deviceAddr) {
                                     _bluetoothManager.stopScan();
-                                    _bluetoothManager.connectToDevice(device, "1");
+                                    _bluetoothManager.connectToDevice(deviceAddr, "1");
                                     isDialogOpen = false;
                                     connectButtonPress = false;
                                     Navigator.pop(context);
@@ -227,12 +111,13 @@ class _HomePageState extends State<HomePage> {
                   })
                 ],
               )
-          ),
-        ],
+            )
+          )],
       ),
     );
   }
 }
+
 class DrawerItemsState extends ChangeNotifier {
   static DrawerItemsState? _instance;
 
