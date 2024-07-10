@@ -152,7 +152,11 @@ class DialogHelper {
 }
 
 class MyCustomCard extends StatelessWidget {
-  const MyCustomCard({super.key});
+  final List<List<String>> deviceInfo;
+
+  const MyCustomCard({
+    required this.deviceInfo,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -182,7 +186,7 @@ class MyCustomCard extends StatelessWidget {
             ),
             SizedBox(height: 15),
             Column(
-              children: List.generate(6, (index) => gridItem(index)),
+              children: deviceInfo.map((List<String> items) => gridItem(items[0], items[1])).toList(),//List.generate(6, (index) => gridItem(index)),
             ),
             SizedBox(height: 30),
             Row(
@@ -202,25 +206,77 @@ class MyCustomCard extends StatelessWidget {
     );
   }
 
-  Widget gridItem(int index) {
+  Widget gridItem(String itemName, String itemValue) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
-          "Ítem ${index + 1}",
+          itemName,
           style: TextStyle(
             fontSize: 18,
             color: AppColors.accentColor,
           ),
         ),
         Text(
-          "${index * 5}%",
+          itemValue,
           style: TextStyle(
             fontSize: 18,
             color: AppColors.accentColor,
           ),
         ),
       ],
+    );
+  }
+}
+
+class MyCustomCard2 extends StatelessWidget {
+  const MyCustomCard2({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      color: Colors.white,
+      elevation: 4.0,
+      margin: EdgeInsets.all(30.0),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 26, horizontal: 35),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Text(
+                  "Sensores",
+                  style: TextStyle(
+                    fontSize: 30,
+                    color: AppColors.primaryColor,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                //Spacer(),
+                //Icon(Icons.info_outline, color: AppColors.primaryColor,),
+              ],
+            ),
+            SizedBox(height: 15),
+            Column(
+              children:[
+                Center(
+                    child: ButtonCustom(onPressed: (){}, color: AppColors.secondaryColor, text: "PH", fillWidth: true, textColor: AppColors.primaryColor,)
+                ),
+                SizedBox(height: 20),
+                Center(
+                    child: ButtonCustom(onPressed: (){}, color: AppColors.secondaryColor, text: "EC", fillWidth: true, textColor: AppColors.primaryColor,)
+                ),
+                SizedBox(height: 20),
+                Center(
+                    child: ButtonCustom(onPressed: (){}, color: AppColors.secondaryColor, text: "ORP", fillWidth: true, textColor: AppColors.primaryColor,)
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

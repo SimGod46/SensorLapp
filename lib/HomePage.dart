@@ -71,15 +71,34 @@ class _HomePageState extends State<HomePage> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  ButtonCustom(
-                    color: AppColors.primaryColor,
-                    icon: Icons.bluetooth_searching,
-                    text: 'Conectar',
-                    onPressed: (){
-                      askBluetoothScan();
-                    },
+                  ValueListenableBuilder(
+                      valueListenable: _bluetoothManager.isConnected,
+                      builder: (ctx, value, child){
+                        if(value){
+                          return
+                            Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                MyCustomCard(
+                                  deviceInfo: drawerItemsState.deviceInformation
+                                ),
+                                MyCustomCard2(),
+                                TerminalCard(),
+                              ],
+                            );
+                        } else{
+                          return ButtonCustom(
+                            color: AppColors.primaryColor,
+                            icon: Icons.bluetooth_searching,
+                            text: 'Conectar',
+                            onPressed: (){
+                              askBluetoothScan();
+                            },
+                          );
+                        }
+                        return const SizedBox();
+                      }
                   ),
-                  //MyCustomCard(),
                   ValueListenableBuilder(
                       valueListenable: _bluetoothManager.discoveryResultsNotifier,
                       builder: (ctx, value, child) {
@@ -92,20 +111,19 @@ class _HomePageState extends State<HomePage> {
                                 return DevicesPopUp(
                                   devicesNotifier: _bluetoothManager.discoveryResultsNotifier,
                                   onDismiss: () {
-                                    _bluetoothManager.stopScan();
-                                    isDialogOpen = false;
-                                    connectButtonPress = false;
                                     Navigator.pop(context);
                                     },
                                   onConfirmation: (deviceAddr) {
-                                    _bluetoothManager.stopScan();
                                     _bluetoothManager.connectToDevice(deviceAddr, "1");
-                                    isDialogOpen = false;
-                                    connectButtonPress = false;
                                     Navigator.pop(context);
                                   },
                                 );
-                              });
+                              }).then((value) async {
+                                _bluetoothManager.stopScan();
+                                isDialogOpen = false;
+                                connectButtonPress = false;
+                                print('Dialog closed');
+                          });
                         });}
                         return const SizedBox();
                   })
@@ -127,6 +145,8 @@ class DrawerItemsState extends ChangeNotifier {
 
   factory DrawerItemsState() => _instance ??= DrawerItemsState._();
 
+  List<List<String>> deviceInformation = List<List<String>>.empty(growable: true);
+
   Map<String, bool> itemsVisibility = {
     "Inicio": true,
     "Terminal": false,
@@ -136,10 +156,19 @@ class DrawerItemsState extends ChangeNotifier {
     "EC": false,
   };
 
+  int sheetSize = 0;
+
   void setItemVisibility(String item, bool isVisible) {
     if (itemsVisibility.containsKey(item)) {
       itemsVisibility[item] = isVisible;
       notifyListeners();
     }
+  }
+  void setFileSize(int size) {
+      sheetSize = size;
+      notifyListeners();
+  }
+  void setDeviceMetadata(List<List<String>> data){
+    deviceInformation = data;
   }
 }

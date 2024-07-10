@@ -6,6 +6,20 @@ import 'NotificationViewmodel.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart' as permissions;
 
+String formatBytes(String bytesRaw, {int decimals = 2}) {
+  int bytes = int.parse(bytesRaw);
+  if (bytes <= 0) return "0 Bytes";
+  const suffixes = ["Bytes", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"];
+  int i = 0;
+  double dbBytes = bytes.toDouble();
+
+  while (dbBytes >= 1024) {
+    dbBytes /= 1024;
+    i++;
+  }
+
+  return "${dbBytes.toStringAsFixed(decimals)} ${suffixes[i]}";
+}
 
 class SensorsManager{
   getMessageFromBT(String lastMessageSended, List<String> currentMessages){
@@ -13,12 +27,35 @@ class SensorsManager{
 
     if(lastMessageSended == "1"){
       drawerItemsState.setItemVisibility("Terminal", true);
+      try{
+        List<String> initialNames = ['Versión Firmware', 'ID Dispositivo', 'Estado SD','Archivo', 'Espacio utilizado', 'Espacio total'];
+        List<String> initialParams = currentMessages[0].split(", ");
+        List<List<String>> combinedList = List.generate(
+          initialParams.length,
+          (index) {
+            if(index == 4 || index == 5) return [initialNames[index], formatBytes(initialParams[index])];
+            return [initialNames[index], initialParams[index]];
+          },
+        );
+        drawerItemsState.setDeviceMetadata(combinedList);
+        drawerItemsState.setFileSize(int.parse(initialParams[4]));
+      } catch(e){
+        print('Error al parsear tamaño del archivo: $e');
+    }
 
-      var listOfSensors = currentMessages.first.split(",");
-      for(var sensor in listOfSensors){
-        var sensorAddress = sensor.split(":").first;
-        var sensorName = sensor.split(":").last;
-        drawerItemsState.setItemVisibility(sensorName, true);
+      try {
+        var listOfSensors = currentMessages[1].split(",");
+        for (var sensor in listOfSensors) {
+          var sensorAddress = sensor
+              .split(":")
+              .first;
+          var sensorName = sensor
+              .split(":")
+              .last;
+          drawerItemsState.setItemVisibility(sensorName, true);
+        }
+      } catch(e){
+        print('Error al parsear los senoses: $e');
       }
       // TODO: Configurar el tamaño del archivo
     }

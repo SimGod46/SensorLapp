@@ -27,9 +27,8 @@ class BluetoothManager extends ChangeNotifier{
   List<BluetoothDiscoveryResult> _discoveryResults = List<BluetoothDiscoveryResult>.empty(growable: true);
   List<BluetoothDiscoveryResult> get discoveryResults => _discoveryResults;
 
-  bool isConnected = false;
+  ValueNotifier<bool> isConnected = ValueNotifier(false);
   bool isDiscovering = false;
-  bool isEndOfTransmission = false;
   BluetoothConnection? _connection;
 
   BluetoothState get bluetoothState => _bluetoothState;
@@ -132,14 +131,14 @@ class BluetoothManager extends ChangeNotifier{
   Future<void> connectToDevice(String deviceAdress, String? initMessage) async {
     try {
       _connection = await BluetoothConnection.toAddress(deviceAdress);
-      isConnected = true;
+      isConnected.value = true;
       notifyListeners();
       if(initMessage !=null){
         sendMessage(initMessage);
       }
 
       _connection!.input!.listen(onDataReceived).onDone(() {
-        if (!isConnected) {
+        if (!isConnected.value) {
           print('Disconnecting locally!');
         } else {
           print('Disconnected remotely!');
@@ -147,7 +146,7 @@ class BluetoothManager extends ChangeNotifier{
       });
     } catch (e) {
       print('Error al conectar: $e');
-      isConnected = false;
+      isConnected.value = false;
       notifyListeners();
     }
   }
@@ -169,52 +168,20 @@ class BluetoothManager extends ChangeNotifier{
   }
 
   void onDataReceived(Uint8List data) {
-    // Allocate buffer for parsed data
-    int backspacesCounter = 0;
-    data.forEach((byte) {
-      if (byte == 8 || byte == 127) {
-        backspacesCounter++;
-      }
-    });
-    Uint8List buffer = Uint8List(data.length - backspacesCounter);
-    int bufferIndex = buffer.length;
-
-    // Apply backspace control character
-    backspacesCounter = 0;
-    for (int i = data.length - 1; i >= 0; i--) {
-      if (data[i] == 8 || data[i] == 127) {
-        backspacesCounter++;
-      } else if(data[i] == 4){
-        isEndOfTransmission = true;
-      }else {
-        if (backspacesCounter > 0) {
-          backspacesCounter--;
-        } else {
-          buffer[--bufferIndex] = data[i];
+    for (int i = 0; i < data.length; i++) {
+      if (data[i] == 4 || data[i] == 13 || data[i] == 10) {
+        if(_messageBuffer.isNotEmpty){
+          messages.add(_messageBuffer);
+          _messageBuffer = "";
+        }
+        if(data[i]==4){ // Verificar si el byte es EOT
+          logicManager.getMessageFromBT(lastMessageSended, List.from(messages));
+          messages.clear();  // Limpiar los mensajes después de manejarlos
         }
       }
-    }
-
-    // Create message if there is new line character
-    String dataString = String.fromCharCodes(buffer);
-    int index = buffer.indexOf(13); // se busca el Carriage return, si no es carriage return, es otro mensaje...
-    if (~index != 0) {
-      String newMessage = backspacesCounter > 0 ?
-      _messageBuffer.substring(0, _messageBuffer.length - backspacesCounter) :
-      _messageBuffer + dataString.substring(0, index);
-
-      messages.add(newMessage.trim());
-      _messageBuffer = dataString.substring(index);
-    } else {
-      _messageBuffer = (
-          backspacesCounter > 0 ?
-          _messageBuffer.substring(0, _messageBuffer.length - backspacesCounter) :
-          _messageBuffer + dataString);
-    }
-    if(isEndOfTransmission){
-      isEndOfTransmission = false;
-      logicManager.getMessageFromBT(lastMessageSended, List.from(messages));
-      messages.clear();
+      else {
+          _messageBuffer += String.fromCharCode(data[i]);
+      }
     }
   }
 
