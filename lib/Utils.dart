@@ -1,5 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
+
+import 'CalibrationPage.dart';
 
 class AppColors {
   static const Color primaryColor = Color(0xFF2C2C2C);
@@ -117,8 +121,247 @@ class _DevicesPopUpState extends State<DevicesPopUp> {
   }
 }
 
+class CountdownWidget extends StatefulWidget {
+  final String text;
+  final int seconds;
+  final VoidCallback onCountDownFinish;
+
+  CountdownWidget({required this.text, required this.seconds, required this.onCountDownFinish});
+
+  @override
+  _CountdownWidgetState createState() => _CountdownWidgetState();
+}
+
+class _CountdownWidgetState extends State<CountdownWidget> {
+  late Timer _timer;
+  late int _remainingSeconds;
+  late double _progressValue;
+
+  @override
+  void initState() {
+    super.initState();
+    _remainingSeconds = widget.seconds;
+    _progressValue = 1.0;
+    _startTimer();
+  }
+
+  @override
+  void dispose() {
+    _timer.cancel();
+    super.dispose();
+  }
+
+  void _startTimer() {
+    _timer = Timer.periodic(Duration(seconds: 1), (timer) {
+      setState(() {
+        if (_remainingSeconds > 0) {
+          _remainingSeconds--;
+          _progressValue = _remainingSeconds / widget.seconds;
+        } else {
+          widget.onCountDownFinish();
+          _timer.cancel();
+        }
+      });
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            widget.text,
+            //style: TextStyle(fontSize: 24),
+            textAlign: TextAlign.center,
+          ),
+          SizedBox(height: 30),
+          Stack(
+            alignment: Alignment.center,
+            children: [
+              SizedBox(
+                width: 100,
+                height: 100,
+                child:
+                CircularProgressIndicator(
+                  color: AppColors.primaryColor,
+                  strokeWidth: 6.0,
+                  value: _progressValue,
+                )
+              ),
+
+              Text(
+                '$_remainingSeconds s',
+                style: TextStyle(fontSize: 16),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class AlertPageCustom extends StatefulWidget {
+  final String hintText;
+  final Function(String) onEdit;
+
+  AlertPageCustom({
+    required this.hintText,
+    required this.onEdit,
+  });
+
+  @override
+  _AlertPageCustom createState() => _AlertPageCustom();
+}
+
+class _AlertPageCustom extends State<AlertPageCustom> {
+  @override
+  Widget build(BuildContext context) {
+    final _textinfield = TextEditingController();
+    var newText = "";
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Padding(padding: const EdgeInsets.symmetric(vertical: 0,horizontal: 16),child:
+          Text("Ingrese el valor de la solución de calibración:"),
+        ),
+        SizedBox(height: 20,),
+        Padding(padding: const EdgeInsets.symmetric(vertical: 0,horizontal: 16),
+            child: TextField(
+                controller: _textinfield,
+                onChanged: (txt)=> newText = txt,//widget.onEdit(txt),
+                decoration: InputDecoration(
+                  hintText: widget.hintText,
+                  border: OutlineInputBorder(),
+                  )
+                )
+        ),
+      ],
+    );
+  }
+}
+
+class MultiStepAlertDialog extends StatefulWidget {
+  final List<String> hintTexts;
+  final Function(BuildContext, String) onNextPage;
+
+  MultiStepAlertDialog({
+    required this.hintTexts,
+    required this.onNextPage,
+  });
+
+  @override
+  _MultiStepAlertDialogState createState() => _MultiStepAlertDialogState();
+}
+
+class _MultiStepAlertDialogState extends State<MultiStepAlertDialog> {
+  PageController _pageController = PageController();
+  int _currentPage = 0;
+  bool _isCountdownFinished = false;
+  String _inputedMessage = "";
+
+  void _onCountdownFinished() {
+    setState(() {
+      _isCountdownFinished = true;
+    });
+  }
+  void _onCountdownStarted() {
+    setState(() {
+      _isCountdownFinished = false;
+    });
+  }
+  void _onInputSended(String message) {
+    setState(() {
+      _inputedMessage = message;
+    });
+  }
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text('Calibración'),
+      content: Container(
+        height: 250,
+        width: double.maxFinite,
+        child: PageView(
+          controller: _pageController,
+          onPageChanged: (int page) {
+            setState(() {
+              _currentPage = page;
+            });
+          },
+          physics: NeverScrollableScrollPhysics(),
+          children:[
+            ...widget.hintTexts.expand((item) => [
+              AlertPageCustom(hintText: item, onEdit:_onInputSended),
+              CountdownWidget(
+                text: "Sumerja el sensor dentro de la solución de $_inputedMessage, luego de 10s, presione siguiente.",
+                seconds: 10,
+                onCountDownFinish: _onCountdownFinished,
+              ),
+            ]),
+            Text("Calibración completada"),
+          ]
+          ,
+        ),
+      ),
+      actions: <Widget>[
+        if (_currentPage == 0)
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+            child: Text('Cancelar'),
+          ),
+        if (_currentPage > 0)
+          TextButton(
+            onPressed: () {
+              _pageController.previousPage(
+                duration: Duration(milliseconds: 300),
+                curve: Curves.ease,
+              );
+            },
+            child: Text('Atrás'),
+          ),
+        if (_currentPage < 6 && ( ![1,3,5].contains(_currentPage) || _isCountdownFinished ))
+          TextButton(
+            onPressed: () {
+              switch(_currentPage){
+                case 1:
+                  widget.onNextPage(context, "Cal,mid,$_inputedMessage");
+                  break;
+                case 3:
+                  widget.onNextPage(context, "Cal,low,$_inputedMessage");
+                  break;
+                case 5:
+                  widget.onNextPage(context, "Cal,mid,$_inputedMessage");
+                  break;
+              }
+
+              _onCountdownStarted();
+              _pageController.nextPage(
+                duration: Duration(milliseconds: 250),
+                curve: Curves.ease,
+              );
+            },
+            child: Text('Siguiente'),
+          ),
+        if (_currentPage == 6)
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+            child: Text('Aceptar'),
+          ),
+      ],
+    );
+  }
+}
+
 class DialogHelper {
-  static Future<void> showMyDialog(BuildContext context, String titleText, String bodyText, VoidCallback onAccept) async {
+  static Future<void> baseDialog(BuildContext context, String titleText, List<Widget> body, VoidCallback onAccept) async {
     return showDialog<void>(
       context: context,
       barrierDismissible: false,
@@ -128,7 +371,7 @@ class DialogHelper {
           content: SingleChildScrollView(
             child: ListBody(
               children: <Widget>[
-                Text(bodyText),
+                ...body,
               ],
             ),
           ),
@@ -149,60 +392,86 @@ class DialogHelper {
       },
     );
   }
+
+  static void showMyDialog(BuildContext context, String titleText, String bodyText,VoidCallback onAccept){
+    baseDialog(context, titleText, [
+      Text(bodyText)
+    ], onAccept);
+  }
+
+  static void showMultiInputDialog(BuildContext context, String titleText, List<String> hintTexts,VoidCallback onAccept){
+    final _textinfield = TextEditingController();
+    var newtext = "";
+    baseDialog(context, titleText,
+        hintTexts.map((item) => Column(
+          children: [
+            TextField(
+            controller: _textinfield,
+            onChanged: (txt)=> newtext = txt,
+            decoration: InputDecoration(
+              hintText: item,
+              border: OutlineInputBorder(),
+            )),
+            SizedBox(height: 20),
+          ],
+        ),
+        ).toList()
+     , onAccept);
+  }
+
+  static void showMyInputDialog(BuildContext context, String titleText, String hintText,VoidCallback onAccept){
+    final _textinfield = TextEditingController();
+    var newtext = "";
+    baseDialog(context, titleText, [
+      TextField(
+        controller: _textinfield,
+        onChanged: (txt)=> newtext = txt,
+        decoration: InputDecoration(
+          hintText: hintText,
+          border: OutlineInputBorder(),
+        ),
+      )
+    ], onAccept);
+  }
 }
 
-class MyCustomCard extends StatelessWidget {
+class DeviceInfoCard extends StatelessWidget {
   final List<List<String>> deviceInfo;
+  final VoidCallback onPressDescargar;
+  final VoidCallback onPressEliminar;
+  final VoidCallback onPressDesconectar;
 
-  const MyCustomCard({
+  const DeviceInfoCard({
+    Key? key,
     required this.deviceInfo,
-  });
+    required this.onPressDescargar,
+    required this.onPressEliminar,
+    required this.onPressDesconectar,
+  }): super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      color: Colors.white,
-      elevation: 4.0,
-      margin: EdgeInsets.all(30.0),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 26, horizontal: 35),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              children: [
-                Text(
-                "Dispositivo",
-                  style: TextStyle(
-                    fontSize: 30,
-                    color: AppColors.primaryColor,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Spacer(),
-                Icon(Icons.info_outline, color: AppColors.primaryColor,),
-              ],
-            ),
-            SizedBox(height: 15),
-            Column(
+    return
+      BaseCard(
+        cardTitle: 'Sensores',
+        cardIcon: Icons.info_outline,
+        body:
+            [Column(
               children: deviceInfo.map((List<String> items) => gridItem(items[0], items[1])).toList(),//List.generate(6, (index) => gridItem(index)),
             ),
             SizedBox(height: 30),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                ButtonCustom(onPressed: (){}, color: AppColors.primaryColor, text: "Descargar"),
-                ButtonCustom(onPressed: (){}, color: AppColors.primaryColor, text: "Eliminar")
+                ButtonCustom(onPressed: (){onPressDescargar();}, color: AppColors.primaryColor, text: "Descargar"),
+                ButtonCustom(onPressed: (){onPressEliminar();}, color: AppColors.primaryColor, text: "Eliminar")
               ],
             ),
             SizedBox(height: 20),
             Center(
-              child: ButtonCustom(onPressed: (){}, color: AppColors.secondaryColor, text: "Desconectar", fillWidth: true, textColor: AppColors.primaryColor,)
+              child: ButtonCustom(onPressed: (){onPressDesconectar();}, color: AppColors.secondaryColor, text: "Desconectar", fillWidth: true, textColor: AppColors.primaryColor,)
             ),
-          ],
-        ),
-      ),
+            ]
     );
   }
 
@@ -229,8 +498,61 @@ class MyCustomCard extends StatelessWidget {
   }
 }
 
-class MyCustomCard2 extends StatelessWidget {
-  const MyCustomCard2({super.key});
+class SensorsAvailableCard extends StatelessWidget {
+  final Map<String,bool> sensorsVisibility;
+
+  const SensorsAvailableCard({
+    Key? key,
+    required this.sensorsVisibility,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    int trueCount = sensorsVisibility.values.where((value) => value).length;
+    return
+      BaseCard(
+        cardTitle: 'Sensores',
+        body:
+        [Column(
+          children:[
+            if(trueCount<=0) ...[
+              Center(
+                  child: Text("No hay datos de sensores...")
+              ),
+              SizedBox(height: 20),
+            ],
+            ...sensorsVisibility.entries.where((entry)=> entry.value).map((entry)=>
+              Column(
+                children:[
+                  Center(
+                      child:
+                      ButtonCustom(
+                        onPressed: (){Navigator.pushReplacement(context,MaterialPageRoute(builder: (context) => CalibrationPage(sensorType: entry.key)),);},
+                        color: AppColors.secondaryColor,
+                        text: entry.key,
+                        fillWidth: true,
+                        textColor: AppColors.primaryColor,)
+                  ),
+                  SizedBox(height: 20),
+                ]
+              )
+            )
+          ],
+        )],
+      );
+  }
+}
+
+class BaseCard extends StatelessWidget {
+  final String cardTitle;
+  final IconData? cardIcon;
+  final List<Widget> body;
+
+  const BaseCard({
+    required this.cardTitle,
+    this.cardIcon,
+    required this.body,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -247,36 +569,23 @@ class MyCustomCard2 extends StatelessWidget {
             Row(
               children: [
                 Text(
-                  "Sensores",
+                  cardTitle,
                   style: TextStyle(
                     fontSize: 30,
                     color: AppColors.primaryColor,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                //Spacer(),
-                //Icon(Icons.info_outline, color: AppColors.primaryColor,),
+                Spacer(),
+                if(cardIcon != null) Icon(cardIcon, color: AppColors.primaryColor,),
               ],
             ),
             SizedBox(height: 15),
-            Column(
-              children:[
-                Center(
-                    child: ButtonCustom(onPressed: (){}, color: AppColors.secondaryColor, text: "PH", fillWidth: true, textColor: AppColors.primaryColor,)
-                ),
-                SizedBox(height: 20),
-                Center(
-                    child: ButtonCustom(onPressed: (){}, color: AppColors.secondaryColor, text: "EC", fillWidth: true, textColor: AppColors.primaryColor,)
-                ),
-                SizedBox(height: 20),
-                Center(
-                    child: ButtonCustom(onPressed: (){}, color: AppColors.secondaryColor, text: "ORP", fillWidth: true, textColor: AppColors.primaryColor,)
-                ),
-              ],
-            ),
+            ...body,
           ],
         ),
       ),
     );
   }
 }
+

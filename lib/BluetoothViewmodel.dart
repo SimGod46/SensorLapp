@@ -136,7 +136,6 @@ class BluetoothManager extends ChangeNotifier{
       if(initMessage !=null){
         sendMessage(initMessage);
       }
-
       _connection!.input!.listen(onDataReceived).onDone(() {
         if (!isConnected.value) {
           print('Disconnecting locally!');
@@ -148,6 +147,17 @@ class BluetoothManager extends ChangeNotifier{
       print('Error al conectar: $e');
       isConnected.value = false;
       notifyListeners();
+    }
+  }
+
+  Future<void> DisconnectDevice() async {
+    try {
+      await _connection?.finish().then((_){
+        isConnected.value = false;
+        notifyListeners();
+      });
+    } catch (e) {
+      print('Error al desconectar: $e');
     }
   }
 
@@ -168,26 +178,34 @@ class BluetoothManager extends ChangeNotifier{
   }
 
   void onDataReceived(Uint8List data) {
-    for (int i = 0; i < data.length; i++) {
-      if (data[i] == 4 || data[i] == 13 || data[i] == 10) {
+    print("Mensaje BL recibido:${String.fromCharCodes(data)} | Bytes: ${data.join(", ")}");
+    data.forEach((byte) {
+      if (byte == 4 || byte == 13 || byte == 10) {
         if(_messageBuffer.isNotEmpty){
           messages.add(_messageBuffer);
           _messageBuffer = "";
         }
-        if(data[i]==4){ // Verificar si el byte es EOT
+        if(byte == 4){ // Verificar si el byte es EOT
           logicManager.getMessageFromBT(lastMessageSended, List.from(messages));
           messages.clear();  // Limpiar los mensajes después de manejarlos
         }
+      } else {
+        _messageBuffer += String.fromCharCode(byte);
       }
-      else {
-          _messageBuffer += String.fromCharCode(data[i]);
-      }
-    }
+    });
+  }
+
+  void closeBluetooth(){
+    print("Se ejecutó el close de BL");
+    FlutterBluetoothSerial.instance.setPairingRequestHandler(null);
+    _streamSubscription?.cancel();
+    _connection?.dispose();
   }
 
   @override
   void dispose() {
     super.dispose();
+    print("Se ejecutó el dispose de BL");
     FlutterBluetoothSerial.instance.setPairingRequestHandler(null);
     _streamSubscription?.cancel();
     _connection?.dispose();

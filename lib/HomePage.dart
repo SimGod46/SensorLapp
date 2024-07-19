@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'Utils.dart';
 import 'TerminalPage.dart';
 import 'BluetoothViewmodel.dart';
+import 'main.dart';
 
 class HomePage extends StatefulWidget {
   @override
@@ -27,7 +28,6 @@ class _HomePageState extends State<HomePage> {
 
   @override
   void dispose() {
-    _bluetoothManager.dispose();
     super.dispose();
   }
 
@@ -41,31 +41,7 @@ class _HomePageState extends State<HomePage> {
     _bluetoothManager = Provider.of<BluetoothManager>(context, listen: true);
     var drawerItemsState = Provider.of<DrawerItemsState>(context);
 
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        iconTheme: IconThemeData(color: AppColors.primaryColor),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: SizedBox(
-              width: 24,
-              height: 24,
-              child: Image.asset('assets/logo_cmas.png'),
-            ),
-          ),
-        ],
-      ),
-      body: Stack(
-        children: [
-          Container(
-            decoration: const BoxDecoration(
-              image: DecorationImage(
-                image: AssetImage("assets/screen_background.png"),
-                fit: BoxFit.cover,
-              ),
-            ),
-          ),
+    return CustomScaffold(body:
           Center(
             child: SingleChildScrollView(
               child: Column(
@@ -79,11 +55,17 @@ class _HomePageState extends State<HomePage> {
                             Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                MyCustomCard(
-                                  deviceInfo: drawerItemsState.deviceInformation
+                                DeviceInfoCard(
+                                  deviceInfo: drawerItemsState.deviceInformation,
+                                  onPressDescargar: () { _bluetoothManager.sendMessage("2"); },
+                                  onPressEliminar: () { DialogHelper.showMyDialog(context, "Eliminar datos", "¿Estas seguro que desea elminar todos los datos de la tarjeta de memoria?",(){_bluetoothManager.sendMessage("3");}); },
+                                  onPressDesconectar: () {
+                                    _bluetoothManager.sendMessage("9");
+                                    _bluetoothManager.DisconnectDevice();
+                                    },
                                 ),
-                                MyCustomCard2(),
-                                TerminalCard(),
+                                SensorsAvailableCard(sensorsVisibility: drawerItemsState.itemsVisibility),
+                                //TerminalCard(),
                               ],
                             );
                         } else{
@@ -96,7 +78,6 @@ class _HomePageState extends State<HomePage> {
                             },
                           );
                         }
-                        return const SizedBox();
                       }
                   ),
                   ValueListenableBuilder(
@@ -130,9 +111,7 @@ class _HomePageState extends State<HomePage> {
                 ],
               )
             )
-          )],
-      ),
-    );
+          ));
   }
 }
 
@@ -148,12 +127,20 @@ class DrawerItemsState extends ChangeNotifier {
   List<List<String>> deviceInformation = List<List<String>>.empty(growable: true);
 
   Map<String, bool> itemsVisibility = {
-    "Inicio": true,
-    "Terminal": false,
+    //"Inicio": true,
     "PH": false,
     "O2": false,
     "ORP": false,
     "EC": false,
+  };
+
+  Map<String, String> itemsAdress = {
+    //"Inicio": true,
+    "PH": "",
+    "O2": "",
+    "ORP": "",
+    "EC": "",
+    //"Terminal": false,
   };
 
   int sheetSize = 0;
@@ -161,6 +148,12 @@ class DrawerItemsState extends ChangeNotifier {
   void setItemVisibility(String item, bool isVisible) {
     if (itemsVisibility.containsKey(item)) {
       itemsVisibility[item] = isVisible;
+      notifyListeners();
+    }
+  }
+  void setItemAdress(String item, String addr) {
+    if (itemsAdress.containsKey(item)) {
+      itemsAdress[item] = addr;
       notifyListeners();
     }
   }

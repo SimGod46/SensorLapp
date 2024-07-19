@@ -6,10 +6,10 @@ import 'NotificationViewmodel.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart' as permissions;
 
-String formatBytes(String bytesRaw, {int decimals = 2}) {
+String formatBytes(String bytesRaw, {int decimals = 1}) {
   int bytes = int.parse(bytesRaw);
   if (bytes <= 0) return "0 Bytes";
-  const suffixes = ["Bytes", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"];
+  const suffixes = ["b", "Kb", "Mb", "Gb", "Tb", "Pb", "Eb", "Zb", "Yb"];
   int i = 0;
   double dbBytes = bytes.toDouble();
 
@@ -24,12 +24,10 @@ String formatBytes(String bytesRaw, {int decimals = 2}) {
 class SensorsManager{
   getMessageFromBT(String lastMessageSended, List<String> currentMessages){
     DrawerItemsState drawerItemsState = DrawerItemsState();
-
     if(lastMessageSended == "1"){
-      drawerItemsState.setItemVisibility("Terminal", true);
       try{
         List<String> initialNames = ['Versión Firmware', 'ID Dispositivo', 'Estado SD','Archivo', 'Espacio utilizado', 'Espacio total'];
-        List<String> initialParams = currentMessages[0].split(", ");
+        List<String> initialParams = currentMessages[0].split(",");
         List<List<String>> combinedList = List.generate(
           initialParams.length,
           (index) {
@@ -53,6 +51,7 @@ class SensorsManager{
               .split(":")
               .last;
           drawerItemsState.setItemVisibility(sensorName, true);
+          drawerItemsState.setItemAdress(sensorName, sensorAddress);
         }
       } catch(e){
         print('Error al parsear los senoses: $e');
