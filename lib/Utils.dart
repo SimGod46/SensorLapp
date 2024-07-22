@@ -206,11 +206,10 @@ class _CountdownWidgetState extends State<CountdownWidget> {
 
 class AlertPageCustom extends StatefulWidget {
   final String hintText;
-  final Function(String) onEdit;
-
+  final extController;
   AlertPageCustom({
     required this.hintText,
-    required this.onEdit,
+    required this.extController,
   });
 
   @override
@@ -220,8 +219,6 @@ class AlertPageCustom extends StatefulWidget {
 class _AlertPageCustom extends State<AlertPageCustom> {
   @override
   Widget build(BuildContext context) {
-    final _textinfield = TextEditingController();
-    var newText = "";
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -231,12 +228,12 @@ class _AlertPageCustom extends State<AlertPageCustom> {
         SizedBox(height: 20,),
         Padding(padding: const EdgeInsets.symmetric(vertical: 0,horizontal: 16),
             child: TextField(
-                controller: _textinfield,
-                onChanged: (txt)=> newText = txt,//widget.onEdit(txt),
+                controller: widget.extController,
                 decoration: InputDecoration(
                   hintText: widget.hintText,
                   border: OutlineInputBorder(),
-                  )
+                  ),
+                  keyboardType: TextInputType.numberWithOptions(decimal: true),
                 )
         ),
       ],
@@ -245,10 +242,12 @@ class _AlertPageCustom extends State<AlertPageCustom> {
 }
 
 class MultiStepAlertDialog extends StatefulWidget {
+  final List<String> comandFormat;
   final List<String> hintTexts;
   final Function(BuildContext, String) onNextPage;
 
   MultiStepAlertDialog({
+    required this.comandFormat,
     required this.hintTexts,
     required this.onNextPage,
   });
@@ -261,7 +260,7 @@ class _MultiStepAlertDialogState extends State<MultiStepAlertDialog> {
   PageController _pageController = PageController();
   int _currentPage = 0;
   bool _isCountdownFinished = false;
-  String _inputedMessage = "";
+  List<TextEditingController> _controllers = [];
 
   void _onCountdownFinished() {
     setState(() {
@@ -273,11 +272,7 @@ class _MultiStepAlertDialogState extends State<MultiStepAlertDialog> {
       _isCountdownFinished = false;
     });
   }
-  void _onInputSended(String message) {
-    setState(() {
-      _inputedMessage = message;
-    });
-  }
+
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
@@ -285,26 +280,32 @@ class _MultiStepAlertDialogState extends State<MultiStepAlertDialog> {
       content: Container(
         height: 250,
         width: double.maxFinite,
-        child: PageView(
-          controller: _pageController,
-          onPageChanged: (int page) {
-            setState(() {
-              _currentPage = page;
-            });
-          },
-          physics: NeverScrollableScrollPhysics(),
-          children:[
-            ...widget.hintTexts.expand((item) => [
-              AlertPageCustom(hintText: item, onEdit:_onInputSended),
-              CountdownWidget(
-                text: "Sumerja el sensor dentro de la solución de $_inputedMessage, luego de 10s, presione siguiente.",
-                seconds: 10,
-                onCountDownFinish: _onCountdownFinished,
-              ),
-            ]),
-            Text("Calibración completada"),
-          ]
-          ,
+        child:
+          PageView(
+            controller: _pageController,
+            onPageChanged: (int page) {
+              setState(() {
+                _currentPage = page;
+              });
+            },
+            physics: NeverScrollableScrollPhysics(),
+            children:[
+              ...widget.hintTexts.asMap().entries.expand((entry){
+                int index = entry.key;
+                String item = entry.value;
+                return [
+                  AlertPageCustom(hintText: item, extController: _controllers[index]),
+                  CountdownWidget(
+                    text: "Sumerja el sensor dentro de la solución de ${_controllers[index].text}, luego de 10s, presione siguiente.",
+                    seconds: 10,
+                    onCountDownFinish: _onCountdownFinished,
+                  ),
+                ];
+              }),
+              Center(
+                child: Text("Calibración completada"),
+              )
+            ],
         ),
       ),
       actions: <Widget>[
@@ -318,7 +319,9 @@ class _MultiStepAlertDialogState extends State<MultiStepAlertDialog> {
         if (_currentPage > 0)
           TextButton(
             onPressed: () {
-              _pageController.previousPage(
+              var navToPage = (_pageController.page! >= 2) ? _pageController.page!.toInt() - 2 : 0;
+              _pageController.animateToPage(
+                navToPage,
                 duration: Duration(milliseconds: 300),
                 curve: Curves.ease,
               );
@@ -328,16 +331,9 @@ class _MultiStepAlertDialogState extends State<MultiStepAlertDialog> {
         if (_currentPage < 6 && ( ![1,3,5].contains(_currentPage) || _isCountdownFinished ))
           TextButton(
             onPressed: () {
-              switch(_currentPage){
-                case 1:
-                  widget.onNextPage(context, "Cal,mid,$_inputedMessage");
-                  break;
-                case 3:
-                  widget.onNextPage(context, "Cal,low,$_inputedMessage");
-                  break;
-                case 5:
-                  widget.onNextPage(context, "Cal,mid,$_inputedMessage");
-                  break;
+              if (_currentPage % 2 != 0) {
+                var idxNum = _currentPage ~/ 2;
+                widget.onNextPage(context,  widget.comandFormat[idxNum]+_controllers[idxNum].text);
               }
 
               _onCountdownStarted();
@@ -357,6 +353,12 @@ class _MultiStepAlertDialogState extends State<MultiStepAlertDialog> {
           ),
       ],
     );
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _controllers.addAll(widget.hintTexts.map((item)=> TextEditingController()));
   }
 }
 
@@ -527,7 +529,7 @@ class SensorsAvailableCard extends StatelessWidget {
                   Center(
                       child:
                       ButtonCustom(
-                        onPressed: (){Navigator.pushReplacement(context,MaterialPageRoute(builder: (context) => CalibrationPage(sensorType: entry.key)),);},
+                        onPressed: (){Navigator.push(context,MaterialPageRoute(builder: (context) => CalibrationPage(sensorType: entry.key)),);},
                         color: AppColors.secondaryColor,
                         text: entry.key,
                         fillWidth: true,

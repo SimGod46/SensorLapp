@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:location/location.dart';
+import 'package:sensor_lapp/HomePage.dart';
 import 'package:sensor_lapp/SensorsViewmodel.dart';
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
 
@@ -128,7 +129,7 @@ class BluetoothManager extends ChangeNotifier{
     }
   }
 
-  Future<void> connectToDevice(String deviceAdress, String? initMessage) async {
+  Future<void> connectToDevice(String deviceAdress, String? initMessage, BuildContext context) async {
     try {
       _connection = await BluetoothConnection.toAddress(deviceAdress);
       isConnected.value = true;
@@ -142,6 +143,8 @@ class BluetoothManager extends ChangeNotifier{
         } else {
           print('Disconnected remotely!');
         }
+        Navigator.pushReplacement(context,
+          MaterialPageRoute(builder: (context) => HomePage()),);
       });
     } catch (e) {
       print('Error al conectar: $e');
@@ -161,11 +164,15 @@ class BluetoothManager extends ChangeNotifier{
     }
   }
 
-  Future<void> sendMessage(String message) async {
+  Future<void> sendMessage(String message, {bool requiredEnd = false}) async {
     print("Trying to send: $message");
+    var endMsg = "";
+    if(requiredEnd){
+      endMsg = "\r\n";
+    }
     if (_connection != null && _connection!.isConnected) {
       try {
-        _connection!.output.add(Uint8List.fromList(utf8.encode(message + "\r\n")));
+        _connection!.output.add(Uint8List.fromList(utf8.encode(message + endMsg)));
         await _connection!.output.allSent;
         lastMessageSended=message;
         // Lógica adicional después de enviar el mensaje

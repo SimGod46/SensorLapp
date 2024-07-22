@@ -24,9 +24,11 @@ class _CalibrationPage extends State<CalibrationPage> {
     String? initMenuCode = drawerItemsState.itemsAdress[widget.sensorType];
     if (initMenuCode!= null) _bluetoothManager.sendMessage(initMenuCode);
     return CustomScaffold(
-        body: Center(
-      child: SensorCalibrationCard(sensorSelected: widget.sensorType),
-    ));
+        body: SingleChildScrollView(
+          child: Center(
+            child: SensorCalibrationCard(sensorSelected: widget.sensorType),
+          ),
+        ));
   }
 }
 
@@ -39,7 +41,7 @@ class SensorCalibrationCard extends StatelessWidget {
 
   void _SendCalibration(BuildContext context, String sensorMessage){
     BluetoothManager _bluetoothManager = Provider.of<BluetoothManager>(context, listen: false);
-    _bluetoothManager.sendMessage(sensorMessage);
+    _bluetoothManager.sendMessage(sensorMessage, requiredEnd: true);
   }
 
   @override
@@ -52,7 +54,7 @@ class SensorCalibrationCard extends StatelessWidget {
       BaseCard(cardTitle: sensorSelected, body: [
         if (sensorSelected == "PH") ...[
           ButtonCustom(
-            onPressed: () {_bluetoothManager.sendMessage("Cal,clear");},
+            onPressed: () {_bluetoothManager.sendMessage("Cal,clear", requiredEnd: true);},
             color: AppColors.secondaryColor,
             text: "Limpiar calibración",
             fillWidth: true,
@@ -78,9 +80,11 @@ class SensorCalibrationCard extends StatelessWidget {
             onPressed: () {
               showDialog(
                 context: context,
+                barrierDismissible: false,
                 builder: (context) => MultiStepAlertDialog(
+                    comandFormat: ["Cal,mid,","Cal,low,","Cal,high,"],
                     hintTexts: ["Punto medio pH","Punto inferior pH", "Punto superior pH"],
-                    onNextPage: _SendCalibration),
+                    onNextPage: _SendCalibration,),
               );
             },
             color: AppColors.secondaryColor,
@@ -91,7 +95,7 @@ class SensorCalibrationCard extends StatelessWidget {
           SizedBox(height: 20),
           ButtonCustom(
             onPressed: () {
-              _bluetoothManager.sendMessage("9");
+              _bluetoothManager.sendMessage("0", requiredEnd: true);
               Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(builder: (context) => HomePage()),
@@ -105,7 +109,7 @@ class SensorCalibrationCard extends StatelessWidget {
         ],
         if (sensorSelected == "EC") ...[
           ButtonCustom(
-            onPressed: () {_bluetoothManager.sendMessage("Cal,clear");},
+            onPressed: () {_bluetoothManager.sendMessage("Cal,clear", requiredEnd: true);},
             color: AppColors.secondaryColor,
             text: "Limpiar calibración",
             fillWidth: true,
@@ -114,67 +118,41 @@ class SensorCalibrationCard extends StatelessWidget {
           SizedBox(height: 20),
           ButtonCustom(
             onPressed: () {
-              DialogHelper.showMyInputDialog(
-                context,
-                "Ingrese valor",
-                "Valor del punto seco para EC",
-                () {},
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (context) => MultiStepAlertDialog(
+                    comandFormat: ["Cal,dry","Cal,",],
+                    hintTexts: ["Punto seco EC","Punto n EC",],
+                    onNextPage: _SendCalibration),
               );
             },
             color: AppColors.secondaryColor,
-            text: "Punto seco",
+            text: "Dos puntos",
             fillWidth: true,
             textColor: AppColors.primaryColor,
           ),
           SizedBox(height: 20),
           ButtonCustom(
             onPressed: () {
-              DialogHelper.showMyInputDialog(
-                context,
-                "Ingrese valor",
-                "Valor de punto único para EC",
-                () {},
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (context) => MultiStepAlertDialog(
+                    comandFormat: ["Cal,dry","Cal,low,","Cal,high,"],
+                    hintTexts: ["Punto seco EC","Punto inferior EC", "Punto superior EC"],
+                    onNextPage: _SendCalibration),
               );
             },
             color: AppColors.secondaryColor,
-            text: "Punto único",
+            text: "Tres puntos",
             fillWidth: true,
             textColor: AppColors.primaryColor,
           ),
           SizedBox(height: 20),
           ButtonCustom(
             onPressed: () {
-              DialogHelper.showMyInputDialog(
-                context,
-                "Ingrese valor",
-                "Valor del punto superior para EC",
-                () {},
-              );
-            },
-            color: AppColors.secondaryColor,
-            text: "Punto superior",
-            fillWidth: true,
-            textColor: AppColors.primaryColor,
-          ),
-          SizedBox(height: 20),
-          ButtonCustom(
-            onPressed: () {
-              DialogHelper.showMyInputDialog(
-                context,
-                "Ingrese valor",
-                "Valor del punto inferior para EC",
-                () {},
-              );
-            },
-            color: AppColors.secondaryColor,
-            text: "Punto inferior",
-            fillWidth: true,
-            textColor: AppColors.primaryColor,
-          ),
-          SizedBox(height: 20),
-          ButtonCustom(
-            onPressed: () {
-              _bluetoothManager.sendMessage("9");
+              _bluetoothManager.sendMessage("0", requiredEnd: true);
               Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(builder: (context) => HomePage()),
@@ -208,25 +186,11 @@ class SensorCalibrationCard extends StatelessWidget {
               onPressed: () {
                 // Acción al presionar el botón (enviar mensaje, por ejemplo)
                 _textinfield.clear();
-                _bluetoothManager.sendMessage(newtext);
+                _bluetoothManager.sendMessage(newtext, requiredEnd: true);
               },
             ),
           ]),
           SizedBox(height: 20),
-          /*
-          ButtonCustom(
-            onPressed: () {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (context) => HomePage()),
-              );
-            },
-            color: AppColors.primaryColor,
-            text: "Atrás",
-            fillWidth: true,
-            textColor: AppColors.secondaryColor,
-          )
-           */
         ],
       )
     ]);

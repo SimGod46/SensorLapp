@@ -41,7 +41,8 @@ class _HomePageState extends State<HomePage> {
     _bluetoothManager = Provider.of<BluetoothManager>(context, listen: true);
     var drawerItemsState = Provider.of<DrawerItemsState>(context);
 
-    return CustomScaffold(body:
+    return
+      CustomScaffold(body:
           Center(
             child: SingleChildScrollView(
               child: Column(
@@ -52,7 +53,18 @@ class _HomePageState extends State<HomePage> {
                       builder: (ctx, value, child){
                         if(value){
                           return
-                            Column(
+                            PopScope(
+                              canPop: false,
+                              onPopInvoked: (bool didPop) async {
+                                if (didPop) {
+                                  return;
+                                }
+                                DialogHelper.showMyDialog(context, "¿Desconectar?", "Se desconectará el dispositivo", (){
+                                  _bluetoothManager.sendMessage("9");
+                                  _bluetoothManager.DisconnectDevice();
+                                });
+                              },
+                              child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 DeviceInfoCard(
@@ -65,9 +77,8 @@ class _HomePageState extends State<HomePage> {
                                     },
                                 ),
                                 SensorsAvailableCard(sensorsVisibility: drawerItemsState.itemsVisibility),
-                                //TerminalCard(),
                               ],
-                            );
+                            ));
                         } else{
                           return ButtonCustom(
                             color: AppColors.primaryColor,
@@ -89,13 +100,15 @@ class _HomePageState extends State<HomePage> {
                           showDialog(
                               context: ctx,
                               builder: (ctx) {
+
+
                                 return DevicesPopUp(
                                   devicesNotifier: _bluetoothManager.discoveryResultsNotifier,
                                   onDismiss: () {
                                     Navigator.pop(context);
                                     },
                                   onConfirmation: (deviceAddr) {
-                                    _bluetoothManager.connectToDevice(deviceAddr, "1");
+                                    _bluetoothManager.connectToDevice(deviceAddr, "1", context);
                                     Navigator.pop(context);
                                   },
                                 );
@@ -105,6 +118,8 @@ class _HomePageState extends State<HomePage> {
                                 connectButtonPress = false;
                                 print('Dialog closed');
                           });
+
+
                         });}
                         return const SizedBox();
                   })

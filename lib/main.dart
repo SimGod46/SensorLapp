@@ -17,10 +17,11 @@ class Datapp extends StatefulWidget {
   State<Datapp> createState() => _Datapp();
 }
 
-class _Datapp extends State<Datapp> {
+class _Datapp extends State<Datapp> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     // Initialise  localnotification
     LocalNotificationService.initialize();
   }
@@ -52,7 +53,21 @@ class _Datapp extends State<Datapp> {
 
   @override
   void dispose() {
-    print("Se cerró la app");
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.detached) {
+      _executeOnClose();
+    }
+  }
+
+  void _executeOnClose() {
+    print('Executing function on app close or suspend');
+    // Aquí puedes poner el código que deseas ejecutar al cerrar o suspender la aplicación.
   }
 }
 
@@ -78,16 +93,23 @@ class CustomScaffold extends StatelessWidget {
           ),
         ],
       ),
-      body: Stack(
-        children: [
-          Container(
-            decoration: const BoxDecoration(
-              color: Color(0xFFF4F5F7),
+      body:
+    GestureDetector(
+      onTap: () {
+        FocusScope.of(context).unfocus();
+      },
+      child:
+        Stack(
+          children: [
+            Container(
+              decoration: const BoxDecoration(
+                color: Color(0xFFF4F5F7),
+              ),
             ),
-          ),
-          body,  // Esto permite a cada pantalla especificar su propio contenido del body.
-        ],
-      ),
+            body,  // Esto permite a cada pantalla especificar su propio contenido del body.
+          ],
+      )
+    ),
     );
   }
 }
