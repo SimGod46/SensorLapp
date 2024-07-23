@@ -13,6 +13,20 @@ class AppColors {
   //static const Color textColor = Color(0xFF2C2C2C);
 }
 
+class SensorCommand {
+  final String comand;
+  final String hint;
+  final bool hasInput;
+  final String? waitText;
+
+  SensorCommand({
+    required this.comand,
+    required this.hint,
+    this.hasInput = true,
+    this.waitText = null,
+  });
+}
+
 class ButtonCustom extends StatelessWidget {
   final VoidCallback onPressed;
   final Color color;
@@ -90,8 +104,10 @@ class _DevicesPopUpState extends State<DevicesPopUp> {
             return Container(
               height: 300,
               width: double.maxFinite,
-              child: SingleChildScrollView(
-                child: ListBody(
+              child:
+              widget.devicesNotifier.value.isNotEmpty ?
+              SingleChildScrollView( child:
+                ListBody(
                   children: widget.devicesNotifier.value.map((device) {
                     return RadioListTile<BluetoothDiscoveryResult>(
                       title: Text(device.device.name ?? 'Dispositivo sin nombre'),
@@ -105,7 +121,8 @@ class _DevicesPopUpState extends State<DevicesPopUp> {
                     );
                   }).toList(),
                 ),
-              ),
+              ) :
+              Center(child: CircularProgressIndicator()),
             );}),
       actions: [
         TextButton(
@@ -205,9 +222,12 @@ class _CountdownWidgetState extends State<CountdownWidget> {
 }
 
 class AlertPageCustom extends StatefulWidget {
+  final bool enabledInput;
   final String hintText;
   final extController;
+
   AlertPageCustom({
+    this.enabledInput = true,
     required this.hintText,
     required this.extController,
   });
@@ -219,7 +239,9 @@ class AlertPageCustom extends StatefulWidget {
 class _AlertPageCustom extends State<AlertPageCustom> {
   @override
   Widget build(BuildContext context) {
-    return Column(
+    return
+      widget.enabledInput ?
+      Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Padding(padding: const EdgeInsets.symmetric(vertical: 0,horizontal: 16),child:
@@ -237,19 +259,22 @@ class _AlertPageCustom extends State<AlertPageCustom> {
                 )
         ),
       ],
+    ) :
+    Center(
+      child: Text("Calibre el dispositivo en el aire..."),
     );
   }
 }
 
 class MultiStepAlertDialog extends StatefulWidget {
-  final List<String> comandFormat;
-  final List<String> hintTexts;
+  final List<SensorCommand> commands;
+  final String measureUnit;
   final Function(BuildContext, String) onNextPage;
 
   MultiStepAlertDialog({
-    required this.comandFormat,
-    required this.hintTexts,
+    required this.commands,
     required this.onNextPage,
+    required this.measureUnit,
   });
 
   @override
@@ -290,13 +315,15 @@ class _MultiStepAlertDialogState extends State<MultiStepAlertDialog> {
             },
             physics: NeverScrollableScrollPhysics(),
             children:[
-              ...widget.hintTexts.asMap().entries.expand((entry){
+              ...widget.commands.asMap().entries.expand((entry){
                 int index = entry.key;
-                String item = entry.value;
+                String item = entry.value.hint;
+                bool hasInput = entry.value.hasInput;
+                String waitText = entry.value.waitText ?? "Sumerja el sensor dentro de la solución de ${_controllers[index].text} ${widget.measureUnit}, luego de 10s, presione siguiente.";
                 return [
-                  AlertPageCustom(hintText: item, extController: _controllers[index]),
+                  AlertPageCustom(hintText: item, extController: _controllers[index], enabledInput: hasInput,),
                   CountdownWidget(
-                    text: "Sumerja el sensor dentro de la solución de ${_controllers[index].text}, luego de 10s, presione siguiente.",
+                    text: waitText,
                     seconds: 10,
                     onCountDownFinish: _onCountdownFinished,
                   ),
@@ -328,12 +355,12 @@ class _MultiStepAlertDialogState extends State<MultiStepAlertDialog> {
             },
             child: Text('Atrás'),
           ),
-        if (_currentPage < 6 && ( ![1,3,5].contains(_currentPage) || _isCountdownFinished ))
+        if (_currentPage < widget.commands.length*2 && (  _currentPage % 2 == 0 || _isCountdownFinished ))
           TextButton(
             onPressed: () {
               if (_currentPage % 2 != 0) {
                 var idxNum = _currentPage ~/ 2;
-                widget.onNextPage(context,  widget.comandFormat[idxNum]+_controllers[idxNum].text);
+                widget.onNextPage(context,  widget.commands[idxNum].comand+_controllers[idxNum].text);
               }
 
               _onCountdownStarted();
@@ -344,7 +371,7 @@ class _MultiStepAlertDialogState extends State<MultiStepAlertDialog> {
             },
             child: Text('Siguiente'),
           ),
-        if (_currentPage == 6)
+        if (_currentPage == widget.commands.length*2)
           TextButton(
             onPressed: () {
               Navigator.of(context).pop();
@@ -358,7 +385,7 @@ class _MultiStepAlertDialogState extends State<MultiStepAlertDialog> {
   @override
   void initState() {
     super.initState();
-    _controllers.addAll(widget.hintTexts.map((item)=> TextEditingController()));
+    _controllers.addAll(widget.commands.map((item)=> TextEditingController()));
   }
 }
 

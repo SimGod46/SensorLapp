@@ -71,7 +71,9 @@ class BluetoothManager extends ChangeNotifier{
   }
 
   void actionScan(){
-    _discoveryResults = List<BluetoothDiscoveryResult>.empty(growable: true); // Reiniciar lista de valores...
+    _discoveryResults = List<BluetoothDiscoveryResult>.empty(growable: true);
+    notifyListeners();    // Reiniciar lista de valores...
+
     _streamSubscription = FlutterBluetoothSerial.instance.startDiscovery().listen((r) {
       isDiscovering = true;
       bluetoothDeviceFound(r);
@@ -143,6 +145,7 @@ class BluetoothManager extends ChangeNotifier{
         } else {
           print('Disconnected remotely!');
         }
+        DisconnectDevice();
         Navigator.pushReplacement(context,
           MaterialPageRoute(builder: (context) => HomePage()),);
       });

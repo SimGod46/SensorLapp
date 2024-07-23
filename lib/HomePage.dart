@@ -14,7 +14,6 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   late BluetoothManager _bluetoothManager;
 
-  bool connectButtonPress = false;
   bool isDialogOpen = false;
   final TextEditingController textEditingController = new TextEditingController();
   final ScrollController listScrollController = new ScrollController();
@@ -32,7 +31,6 @@ class _HomePageState extends State<HomePage> {
   }
 
   void askBluetoothScan(){
-    connectButtonPress = true;
     _bluetoothManager.startBluetoothScan();
   }
 
@@ -86,43 +84,29 @@ class _HomePageState extends State<HomePage> {
                             text: 'Conectar',
                             onPressed: (){
                               askBluetoothScan();
+                              showDialog(
+                                  context: ctx,
+                                  builder: (ctx) {
+                                    return DevicesPopUp(
+                                      devicesNotifier: _bluetoothManager.discoveryResultsNotifier,
+                                      onDismiss: () {
+                                        Navigator.pop(context);
+                                      },
+                                      onConfirmation: (deviceAddr) {
+                                        _bluetoothManager.connectToDevice(deviceAddr, "1", context);
+                                        Navigator.pop(context);
+                                      },
+                                    );
+                                  }).then((value) async {
+                                _bluetoothManager.stopScan();
+                                isDialogOpen = false;
+                                print('Dialog closed');
+                              });
                             },
                           );
                         }
                       }
                   ),
-                  ValueListenableBuilder(
-                      valueListenable: _bluetoothManager.discoveryResultsNotifier,
-                      builder: (ctx, value, child) {
-                        if (value.isNotEmpty && connectButtonPress && !isDialogOpen) {
-                        isDialogOpen = true;
-                        Future.delayed(const Duration(seconds: 0), () {
-                          showDialog(
-                              context: ctx,
-                              builder: (ctx) {
-
-
-                                return DevicesPopUp(
-                                  devicesNotifier: _bluetoothManager.discoveryResultsNotifier,
-                                  onDismiss: () {
-                                    Navigator.pop(context);
-                                    },
-                                  onConfirmation: (deviceAddr) {
-                                    _bluetoothManager.connectToDevice(deviceAddr, "1", context);
-                                    Navigator.pop(context);
-                                  },
-                                );
-                              }).then((value) async {
-                                _bluetoothManager.stopScan();
-                                isDialogOpen = false;
-                                connectButtonPress = false;
-                                print('Dialog closed');
-                          });
-
-
-                        });}
-                        return const SizedBox();
-                  })
                 ],
               )
             )
