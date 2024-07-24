@@ -122,7 +122,7 @@ class _DevicesPopUpState extends State<DevicesPopUp> {
                   }).toList(),
                 ),
               ) :
-              Center(child: CircularProgressIndicator()),
+              Center(child: CircularProgressIndicator(color: AppColors.primaryColor,strokeWidth: 6.0,)),
             );}),
       actions: [
         TextButton(
@@ -300,7 +300,13 @@ class _MultiStepAlertDialogState extends State<MultiStepAlertDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
+    return
+      GestureDetector(
+        onTap: () {
+          FocusScope.of(context).unfocus();
+        },
+        child:
+      AlertDialog(
       title: Text('Calibración'),
       content: Container(
         height: 250,
@@ -319,7 +325,7 @@ class _MultiStepAlertDialogState extends State<MultiStepAlertDialog> {
                 int index = entry.key;
                 String item = entry.value.hint;
                 bool hasInput = entry.value.hasInput;
-                String waitText = entry.value.waitText ?? "Sumerja el sensor dentro de la solución de ${_controllers[index].text} ${widget.measureUnit}, luego de 10s, presione siguiente.";
+                String waitText = entry.value.waitText ?? "Sumerja el sensor dentro de la solución de ${_controllers[index].text} ${widget.measureUnit}, luego de 10 segundos, presione siguiente.";
                 return [
                   AlertPageCustom(hintText: item, extController: _controllers[index], enabledInput: hasInput,),
                   CountdownWidget(
@@ -339,6 +345,7 @@ class _MultiStepAlertDialogState extends State<MultiStepAlertDialog> {
         if (_currentPage == 0)
           TextButton(
             onPressed: () {
+              FocusScope.of(context).unfocus();
               Navigator.of(context).pop();
             },
             child: Text('Cancelar'),
@@ -346,6 +353,7 @@ class _MultiStepAlertDialogState extends State<MultiStepAlertDialog> {
         if (_currentPage > 0)
           TextButton(
             onPressed: () {
+              FocusScope.of(context).unfocus();
               var navToPage = (_pageController.page! >= 2) ? _pageController.page!.toInt() - 2 : 0;
               _pageController.animateToPage(
                 navToPage,
@@ -358,6 +366,7 @@ class _MultiStepAlertDialogState extends State<MultiStepAlertDialog> {
         if (_currentPage < widget.commands.length*2 && (  _currentPage % 2 == 0 || _isCountdownFinished ))
           TextButton(
             onPressed: () {
+              FocusScope.of(context).unfocus();
               if (_currentPage % 2 != 0) {
                 var idxNum = _currentPage ~/ 2;
                 widget.onNextPage(context,  widget.commands[idxNum].comand+_controllers[idxNum].text);
@@ -374,12 +383,13 @@ class _MultiStepAlertDialogState extends State<MultiStepAlertDialog> {
         if (_currentPage == widget.commands.length*2)
           TextButton(
             onPressed: () {
+              FocusScope.of(context).unfocus();
               Navigator.of(context).pop();
             },
             child: Text('Aceptar'),
           ),
       ],
-    );
+    ));
   }
 
   @override
@@ -482,7 +492,7 @@ class DeviceInfoCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return
       BaseCard(
-        cardTitle: 'Sensores',
+        cardTitle: 'Estación',
         cardIcon: Icons.info_outline,
         body:
             [Column(
@@ -540,7 +550,7 @@ class SensorsAvailableCard extends StatelessWidget {
     int trueCount = sensorsVisibility.values.where((value) => value).length;
     return
       BaseCard(
-        cardTitle: 'Sensores',
+        cardTitle: 'Calibración',
         body:
         [Column(
           children:[

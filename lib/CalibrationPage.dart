@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:provider/provider.dart';
 import 'package:sensor_lapp/HomePage.dart';
 import 'package:sensor_lapp/Utils.dart';
@@ -68,12 +69,16 @@ class SensorCalibrationCard extends StatelessWidget {
                 ),
                 SizedBox(height: 20),
                 ButtonCustom(
+
                   onPressed: () {
-                    DialogHelper.showMyInputDialog(
-                      context,
-                      "Ingrese valor",
-                      "Valor del punto medio para pH",
-                          () {},
+                    showDialog(
+                      context: context,
+                      barrierDismissible: false,
+                      builder: (context) => MultiStepAlertDialog(
+                          measureUnit: "pH",
+                          commands: [
+                            SensorCommand(comand: "Cal,mid,", hint: "Punto medio pH")],
+                          onNextPage: _SendCalibration),
                     );
                   },
                   color: AppColors.secondaryColor,
@@ -199,6 +204,10 @@ class SensorCalibrationCard extends StatelessWidget {
                     icon: Icon(Icons.send), // Icono de avión de papel
                     onPressed: () {
                       // Acción al presionar el botón (enviar mensaje, por ejemplo)
+                      Fluttertoast.showToast(
+                        msg: "Mensaje enviado",
+                      );
+                      FocusScope.of(context).unfocus();
                       _textinfield.clear();
                       _bluetoothManager.sendMessage(newtext, requiredEnd: true);
                     },

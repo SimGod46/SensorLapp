@@ -1,10 +1,12 @@
 import 'dart:io';
 import 'package:csv/csv.dart';
+import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'HomePage.dart';
 import 'NotificationViewmodel.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart' as permissions;
+import 'package:fluttertoast/fluttertoast.dart';
 
 String formatBytes(String bytesRaw, {int decimals = 1}) {
   int bytes = int.parse(bytesRaw);
@@ -22,6 +24,48 @@ String formatBytes(String bytesRaw, {int decimals = 1}) {
 }
 
 class SensorsManager{
+  List<String> messages = List<String>.empty(growable: true);
+  String _messageBuffer = '';
+  String lastMessageSended = "";
+  int bytesCount = 0;
+  int notificationId = 0;
+
+  int fileSize = 0;
+  int cardSize = 0;
+
+  //TODO: Revisar que pasa si envio un mensaje sin esperar a que termine la respuesta...
+
+  setLastMessage(String message){
+    lastMessageSended = message;
+  }
+
+  getByteFromBT(int byte){
+    if(lastMessageSended == "2"){
+      if(bytesCount == 0){
+        notificationId = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+      }
+      int progress = (bytesCount*100) ~/ fileSize;
+      if(progress % 10 == 0 && progress != 100){
+        LocalNotificationService.displayProgress(notificationId, "Guardando archivo CSV", "Progreso: ${progress}", progress);
+      }
+    }
+    bytesCount++;
+    if (byte == 4 || byte == 13 || byte == 10) {
+      if(_messageBuffer.isNotEmpty){
+        messages.add(_messageBuffer);
+        _messageBuffer = "";
+      }
+      if(byte == 4){
+        bytesCount = 0;// Verificar si el byte es EOT
+        getMessageFromBT(lastMessageSended, List.from(messages));
+        messages.clear();  // Limpiar los mensajes después de manejarlos
+      }
+    } else {
+      _messageBuffer += String.fromCharCode(byte);
+    }
+  }
+
+
   getMessageFromBT(String lastMessageSended, List<String> currentMessages){
     DrawerItemsState drawerItemsState = DrawerItemsState();
     if(lastMessageSended == "1"){
@@ -37,6 +81,7 @@ class SensorsManager{
         );
         drawerItemsState.setDeviceMetadata(combinedList);
         drawerItemsState.setFileSize(int.parse(initialParams[4]));
+        fileSize = int.parse(initialParams[4]);
       } catch(e){
         print('Error al parsear tamaño del archivo: $e');
     }
@@ -54,18 +99,24 @@ class SensorsManager{
           drawerItemsState.setItemAdress(sensorName, sensorAddress);
         }
       } catch(e){
-        print('Error al parsear los senoses: $e');
+        print('Error al parsear los sensores: $e');
       }
       // TODO: Configurar el tamaño del archivo
-    }
-
-    if(currentMessages.first!="OK"){
-      return;
-    }
-    currentMessages = currentMessages.sublist(1);
-
-    if(lastMessageSended == "2"){
-      saveListToCSV(currentMessages);
+      //} else if(currentMessages.first!="OK"){
+      //return;
+    } else{
+      currentMessages = currentMessages.sublist(1);
+      if(lastMessageSended == "2"){
+        saveListToCSV(currentMessages);
+      } else{
+        print(currentMessages);
+        Fluttertoast.showToast(
+          msg: currentMessages.first,
+          backgroundColor: Colors.white, // Color de fondo
+          textColor: Colors.black, // Color del texto
+          fontSize: 16.0, // Tamaño de la fuente
+        );
+      }
     }
   }
 
@@ -100,7 +151,7 @@ class SensorsManager{
 
       // Escribir los datos al archivo CSV
       await file.writeAsString(csv);
-      LocalNotificationService.display("Toca para abrir", "Archivo CSV creado: Sensorlapp_record_$formatedTime.csv", '$path/Sensorlapp_record_$formatedTime.csv');
+      LocalNotificationService.display(notificationId, "Toca para abrir", "Archivo CSV creado: Sensorlapp_record_$formatedTime.csv", '$path/Sensorlapp_record_$formatedTime.csv');
     } catch (e) {
       print('Error al guardar el archivo CSV: $e');
     }

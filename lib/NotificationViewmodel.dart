@@ -29,11 +29,34 @@ class LocalNotificationService {
     await OpenFile.open(filePath);
   }
 
-  static Future<void> display(String message, String title, String payload) async {
+  static Future<void> displayProgress(int id,String message, String title, int i) async {
+    try {
+      print(message);
+      //final id = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+      NotificationDetails notificationDetails = NotificationDetails(
+        android: AndroidNotificationDetails(
+            "Channel Id",
+            "Main Channel",
+            groupKey: "gfg",
+            color: Colors.green,
+            importance: Importance.high,
+            maxProgress: 100,
+            showProgress: true,
+            progress: i,
+            playSound: true,
+            priority: Priority.high),
+      );
+      await _notificationsPlugin.show(id, title, message, notificationDetails);
+    } catch (e) {
+      print(e.toString());
+    }
+  }
+
+  static Future<void> display(int id,String message, String title, String payload) async {
     // To display the notification in device
     try {
       print(message);
-      final id = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+      //final id = DateTime.now().millisecondsSinceEpoch ~/ 1000;
       NotificationDetails notificationDetails = NotificationDetails(
         android: AndroidNotificationDetails(
             "Channel Id",
@@ -41,8 +64,6 @@ class LocalNotificationService {
             groupKey: "gfg",
             color: Colors.green,
             importance: Importance.max,
-            // different sound for
-            // different notification
             playSound: true,
             priority: Priority.high),
       );

@@ -34,9 +34,6 @@ class BluetoothManager extends ChangeNotifier{
 
   BluetoothState get bluetoothState => _bluetoothState;
 
-  List<String> messages = List<String>.empty(growable: true);
-  String _messageBuffer = '';
-  String lastMessageSended = "";
   SensorsManager logicManager = SensorsManager();
   void startListeningToBluetoothState() {
     FlutterBluetoothSerial.instance.state.then((state) {
@@ -177,8 +174,7 @@ class BluetoothManager extends ChangeNotifier{
       try {
         _connection!.output.add(Uint8List.fromList(utf8.encode(message + endMsg)));
         await _connection!.output.allSent;
-        lastMessageSended=message;
-        // Lógica adicional después de enviar el mensaje
+        logicManager.setLastMessage(message);
       } catch (e) {
         print('Error al enviar mensaje: $e');
       }
@@ -190,18 +186,7 @@ class BluetoothManager extends ChangeNotifier{
   void onDataReceived(Uint8List data) {
     print("Mensaje BL recibido:${String.fromCharCodes(data)} | Bytes: ${data.join(", ")}");
     data.forEach((byte) {
-      if (byte == 4 || byte == 13 || byte == 10) {
-        if(_messageBuffer.isNotEmpty){
-          messages.add(_messageBuffer);
-          _messageBuffer = "";
-        }
-        if(byte == 4){ // Verificar si el byte es EOT
-          logicManager.getMessageFromBT(lastMessageSended, List.from(messages));
-          messages.clear();  // Limpiar los mensajes después de manejarlos
-        }
-      } else {
-        _messageBuffer += String.fromCharCode(byte);
-      }
+      logicManager.getByteFromBT(byte);
     });
   }
 

@@ -81,17 +81,16 @@ class CustomScaffold extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.white,
-        iconTheme: IconThemeData(color: AppColors.primaryColor),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: SizedBox(
-              width: 24,
-              height: 24,
-              child: Image.asset('assets/logo_cmas.png'),
-            ),
+        leading:
+        Padding(
+          padding: const EdgeInsets.all(12.0),
+          child: SizedBox(
+            width: 12,
+            height: 12,
+            child: Image.asset('assets/logo_cmas.png'),
           ),
-        ],
+        ),
+        iconTheme: IconThemeData(color: AppColors.primaryColor),
       ),
       body:
     GestureDetector(
