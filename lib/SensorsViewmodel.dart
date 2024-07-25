@@ -40,8 +40,9 @@ class SensorsManager{
   }
 
   getByteFromBT(int byte){
+    bytesCount++;
     if(lastMessageSended == "2"){
-      if(bytesCount == 0){
+      if(bytesCount == 1){
         notificationId = DateTime.now().millisecondsSinceEpoch ~/ 1000;
       }
       int progress = (bytesCount*100) ~/ fileSize;
@@ -49,7 +50,6 @@ class SensorsManager{
         LocalNotificationService.displayProgress(notificationId, "Guardando archivo CSV", "Progreso: ${progress}", progress);
       }
     }
-    bytesCount++;
     if (byte == 4 || byte == 13 || byte == 10) {
       if(_messageBuffer.isNotEmpty){
         messages.add(_messageBuffer);
@@ -68,7 +68,7 @@ class SensorsManager{
 
   getMessageFromBT(String lastMessageSended, List<String> currentMessages){
     DrawerItemsState drawerItemsState = DrawerItemsState();
-    if(lastMessageSended == "1"){
+    if(lastMessageSended == "1" || lastMessageSended == "3"){
       try{
         List<String> initialNames = ['Versión Firmware', 'ID Dispositivo', 'Estado SD','Archivo', 'Espacio utilizado', 'Espacio total'];
         List<String> initialParams = currentMessages[0].split(",");
@@ -101,17 +101,14 @@ class SensorsManager{
       } catch(e){
         print('Error al parsear los sensores: $e');
       }
-      // TODO: Configurar el tamaño del archivo
-      //} else if(currentMessages.first!="OK"){
-      //return;
+
     } else{
-      currentMessages = currentMessages.sublist(1);
       if(lastMessageSended == "2"){
-        saveListToCSV(currentMessages);
+        saveListToCSV(currentMessages.sublist(1));
       } else{
         print(currentMessages);
         Fluttertoast.showToast(
-          msg: currentMessages.first,
+          msg: currentMessages.last,
           backgroundColor: Colors.white, // Color de fondo
           textColor: Colors.black, // Color del texto
           fontSize: 16.0, // Tamaño de la fuente

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:provider/provider.dart';
 
 import 'Utils.dart';
@@ -66,11 +67,15 @@ class _HomePageState extends State<HomePage> {
                               children: [
                                 DeviceInfoCard(
                                   deviceInfo: drawerItemsState.deviceInformation,
-                                  onPressDescargar: () { _bluetoothManager.sendMessage("2"); },
-                                  onPressEliminar: () { DialogHelper.showMyDialog(context, "Eliminar datos", "¿Estas seguro que desea elminar todos los datos de la tarjeta de memoria?",(){_bluetoothManager.sendMessage("3");}); },
+                                  onPressDescargar: () {
+                                    Fluttertoast.showToast(msg: "Descarga iniciada");
+                                    _bluetoothManager.sendMessage("2");
+                                    },
+                                  onPressEliminar: () { DialogHelper.showMyDialog(context, "Eliminar datos", "¿Estas seguro que desea elminar todos los datos de la tarjeta de memoria?",(){Fluttertoast.showToast(msg: "Datos eliminados");_bluetoothManager.sendMessage("3");}); },
                                   onPressDesconectar: () {
                                     _bluetoothManager.sendMessage("9");
                                     _bluetoothManager.DisconnectDevice();
+                                    Fluttertoast.showToast(msg: "Desconectado");
                                     },
                                 ),
                                 SensorsAvailableCard(sensorsVisibility: drawerItemsState.itemsVisibility),
