@@ -6,6 +6,7 @@ import 'package:location/location.dart';
 import 'package:sensor_lapp/HomePage.dart';
 import 'package:sensor_lapp/SensorsViewmodel.dart';
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
+import 'package:permission_handler/permission_handler.dart' as permissions;
 
 class BluetoothManager extends ChangeNotifier{
   static BluetoothManager? _instance;
@@ -81,6 +82,32 @@ class BluetoothManager extends ChangeNotifier{
     });
   }
 
+  Future<bool> checkBLPermissions() async {
+    List<permissions.Permission> permissionsNeeded = [];
+    if (await permissions.Permission.bluetooth.isDenied) {
+      permissionsNeeded.add(permissions.Permission.bluetooth);
+    }
+    if (await permissions.Permission.bluetoothConnect.isDenied) {
+      permissionsNeeded.add(permissions.Permission.bluetoothConnect);
+    }
+    if (await permissions.Permission.bluetoothScan.isDenied) {
+      permissionsNeeded.add(permissions.Permission.bluetoothScan);
+    }
+    if (await permissions.Permission.locationWhenInUse.isDenied) {
+      permissionsNeeded.add(permissions.Permission.locationWhenInUse);
+    }
+
+    Map<permissions.Permission, permissions.PermissionStatus> statuses = await permissionsNeeded.request();
+
+    /*
+    if (statuses.values.any((status) => status.isDenied)) {
+      permissions.openAppSettings();
+      return false;
+    }
+     */
+    return true;
+  }
+
   Future<bool> checkLocationService() async  {
     _LocationServiceEnabled = await location.serviceEnabled();
     if (!_LocationServiceEnabled) {
@@ -90,13 +117,6 @@ class BluetoothManager extends ChangeNotifier{
       }
     }
 
-    _locationPermissionGranted = await location.hasPermission();
-    if (_locationPermissionGranted == PermissionStatus.denied) {
-      _locationPermissionGranted = await location.requestPermission();
-      if (_locationPermissionGranted != PermissionStatus.granted) {
-        return false;
-      }
-    }
     return true;
   }
 
@@ -105,6 +125,12 @@ class BluetoothManager extends ChangeNotifier{
     if(!gpsEnabled){
       return;
     }
+
+    var permissionGranted = await checkBLPermissions();
+    if(!permissionGranted){
+      return;
+    }
+
     if (_bluetoothState.isEnabled) {
       await FlutterBluetoothSerial.instance.isDiscovering.then((onValue){
         if(onValue ?? false){

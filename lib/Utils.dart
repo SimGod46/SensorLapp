@@ -192,29 +192,38 @@ class _CountdownWidgetState extends State<CountdownWidget> {
           Text(
             widget.text,
             //style: TextStyle(fontSize: 24),
-            textAlign: TextAlign.center,
+            textAlign: TextAlign.justify,
           ),
           SizedBox(height: 30),
-          Stack(
-            alignment: Alignment.center,
-            children: [
-              SizedBox(
-                width: 100,
-                height: 100,
-                child:
-                CircularProgressIndicator(
-                  color: AppColors.primaryColor,
-                  strokeWidth: 6.0,
-                  value: _progressValue,
-                )
-              ),
-
-              Text(
-                '$_remainingSeconds s',
-                style: TextStyle(fontSize: 16),
-              ),
-            ],
-          ),
+          Expanded(
+            child:
+          LayoutBuilder(
+            builder: (context, constraints) {
+              // Calculate the maximum size available
+              double maxSize =
+              constraints.maxWidth < constraints.maxHeight
+                  ? constraints.maxWidth
+                  : constraints.maxHeight;
+              return Stack(
+                alignment: Alignment.center,
+                children: [
+                  SizedBox(
+                    width: maxSize,
+                    height: maxSize,
+                    child: CircularProgressIndicator(
+                      color: AppColors.primaryColor,
+                      strokeWidth: 6.0,
+                      value: _progressValue,
+                    ),
+                  ),
+                  Text(
+                    '$_remainingSeconds s',
+                    style: TextStyle(fontSize: 16),
+                  ),
+                ],
+              );
+            },
+          )),
         ],
       ),
     );
@@ -499,13 +508,26 @@ class DeviceInfoCard extends StatelessWidget {
               children: deviceInfo.map((List<String> items) => gridItem(items[0], items[1])).toList(),//List.generate(6, (index) => gridItem(index)),
             ),
             SizedBox(height: 30),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                ButtonCustom(onPressed: (){onPressDescargar();}, color: AppColors.primaryColor, text: "Descargar"),
-                ButtonCustom(onPressed: (){onPressEliminar();}, color: AppColors.primaryColor, text: "Eliminar")
-              ],
-            ),
+            LayoutBuilder(
+            builder: (context, constraints) {
+            if (constraints.maxWidth > 300) {
+              return Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  ButtonCustom(onPressed: (){onPressDescargar();}, color: AppColors.primaryColor, text: "Descargar"),
+                  ButtonCustom(onPressed: (){onPressEliminar();}, color: AppColors.primaryColor, text: "Eliminar")
+                ],
+              );
+            } else{
+              return Column(
+                children: [
+                  ButtonCustom(onPressed: (){onPressDescargar();}, color: AppColors.primaryColor, text: "Descargar", fillWidth: true,),
+                  SizedBox(height: 20),
+                  ButtonCustom(onPressed: (){onPressEliminar();}, color: AppColors.primaryColor, text: "Eliminar", fillWidth: true,)
+                ],
+              );
+            }
+            }),
             SizedBox(height: 20),
             Center(
               child: ButtonCustom(onPressed: (){onPressDesconectar();}, color: AppColors.secondaryColor, text: "Desconectar", fillWidth: true, textColor: AppColors.primaryColor,)

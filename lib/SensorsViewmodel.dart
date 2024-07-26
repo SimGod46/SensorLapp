@@ -70,7 +70,7 @@ class SensorsManager{
     DrawerItemsState drawerItemsState = DrawerItemsState();
     if(lastMessageSended == "1" || lastMessageSended == "3"){
       try{
-        List<String> initialNames = ['Versión Firmware', 'ID Dispositivo', 'Estado SD','Archivo', 'Espacio utilizado', 'Espacio total'];
+        List<String> initialNames = ['Versión Firmware', 'ID Dispositivo', 'Estado SD','Archivo', 'Esp. usado', 'Esp. total'];
         List<String> initialParams = currentMessages[0].split(",");
         List<List<String>> combinedList = List.generate(
           initialParams.length,
