@@ -37,7 +37,7 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     _bluetoothManager = Provider.of<BluetoothManager>(context, listen: true);
-    var drawerItemsState = Provider.of<DrawerItemsState>(context);
+    DrawerItemsState drawerItemsState = Provider.of<DrawerItemsState>(context);
 
     return
       CustomScaffold(body:
@@ -129,8 +129,11 @@ class DrawerItemsState extends ChangeNotifier {
 
   List<List<String>> deviceInformation = List<List<String>>.empty(growable: true);
 
+  String currentPage = "";
+
+  String realTimeReading = "No data";
+
   Map<String, bool> itemsVisibility = {
-    //"Inicio": true,
     "PH": false,
     "O2": false,
     "ORP": false,
@@ -138,15 +141,18 @@ class DrawerItemsState extends ChangeNotifier {
   };
 
   Map<String, String> itemsAdress = {
-    //"Inicio": true,
     "PH": "",
     "O2": "",
     "ORP": "",
     "EC": "",
-    //"Terminal": false,
   };
 
   int sheetSize = 0;
+
+  void setRealTimeRead(String read){
+    realTimeReading = read;
+    notifyListeners();
+  }
 
   void setItemVisibility(String item, bool isVisible) {
     if (itemsVisibility.containsKey(item)) {

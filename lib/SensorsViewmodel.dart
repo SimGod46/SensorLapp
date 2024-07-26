@@ -25,7 +25,8 @@ String formatBytes(String bytesRaw, {int decimals = 1}) {
 
 class SensorsManager{
   List<String> messages = List<String>.empty(growable: true);
-  String _messageBuffer = '';
+  String currentPage = "";
+  String _messageBuffer = "";
   String lastMessageSended = "";
   int bytesCount = 0;
   int notificationId = 0;
@@ -68,7 +69,9 @@ class SensorsManager{
 
   getMessageFromBT(String lastMessageSended, List<String> currentMessages){
     DrawerItemsState drawerItemsState = DrawerItemsState();
-    if(lastMessageSended == "1" || lastMessageSended == "3"){
+    if(currentPage == "Terminal"){
+      //TODO: Mostrar los comando de terminal solo en la terminal!
+    } else if(lastMessageSended == "1" || lastMessageSended == "3"){
       try{
         List<String> initialNames = ['Versión Firmware', 'ID Dispositivo', 'Estado SD','Archivo', 'Esp. usado', 'Esp. total'];
         List<String> initialParams = currentMessages[0].split(",");
@@ -85,7 +88,6 @@ class SensorsManager{
       } catch(e){
         print('Error al parsear tamaño del archivo: $e');
     }
-
       try {
         var listOfSensors = currentMessages[1].split(",");
         for (var sensor in listOfSensors) {
@@ -102,18 +104,19 @@ class SensorsManager{
         print('Error al parsear los sensores: $e');
       }
 
-    } else{
-      if(lastMessageSended == "2"){
+    } else if(lastMessageSended == "2"){
         saveListToCSV(currentMessages.sublist(1));
-      } else{
-        print(currentMessages);
-        Fluttertoast.showToast(
-          msg: currentMessages.last,
-          backgroundColor: Colors.white, // Color de fondo
-          textColor: Colors.black, // Color del texto
-          fontSize: 16.0, // Tamaño de la fuente
-        );
-      }
+    } else if(lastMessageSended.toLowerCase() == "r"){
+        drawerItemsState.setRealTimeRead(currentMessages.last);
+    }
+    else{
+      print(currentMessages);
+      Fluttertoast.showToast(
+        msg: currentMessages.last,
+        backgroundColor: Colors.white, // Color de fondo
+        textColor: Colors.black, // Color del texto
+        fontSize: 16.0, // Tamaño de la fuente
+      );
     }
   }
 

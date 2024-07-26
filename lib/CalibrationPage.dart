@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:fluttertoast/fluttertoast.dart';
 import 'package:provider/provider.dart';
 import 'package:sensor_lapp/HomePage.dart';
 import 'package:sensor_lapp/Utils.dart';
 import 'package:sensor_lapp/main.dart';
+import 'dart:async';
 
 import 'BluetoothViewmodel.dart';
 
@@ -48,6 +48,7 @@ class SensorCalibrationCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     BluetoothManager _bluetoothManager = Provider.of<BluetoothManager>(context, listen: true);
+    DrawerItemsState drawerItemsState = Provider.of<DrawerItemsState>(context);
     final _textinfield = TextEditingController();
     var newtext = "";
 
@@ -185,6 +186,30 @@ class SensorCalibrationCard extends StatelessWidget {
               ],
             ]),
             SizedBox(height: 30),
+            BaseCard(cardTitle: "Lectura",
+                body:
+                [
+                  SizedBox(height: 15),
+                  ReadBackground(
+                    messageRecived: drawerItemsState.realTimeReading,
+                    asyncTask: () {
+                    _bluetoothManager.sendMessage("r");
+                    },
+                  ),
+                  /*
+                  Center(child:
+                    Text(drawerItemsState.realTimeReading,
+                      style: TextStyle(
+                      fontSize: 25,
+                      color: AppColors.primaryColor,
+                      fontWeight: FontWeight.normal,),
+                    ),
+                  ),
+                  */
+                  SizedBox(height: 15),
+                ]
+            )
+            /*
             BaseCard(
               cardTitle: "Terminal",
               body: [
@@ -216,7 +241,75 @@ class SensorCalibrationCard extends StatelessWidget {
                 SizedBox(height: 20),
               ],
             )
+            */
+
           ])
         );
+  }
+}
+
+
+class ReadBackground extends StatefulWidget {
+  final String messageRecived;
+  final VoidCallback asyncTask;
+
+  const ReadBackground({
+    Key? key,
+    required this.messageRecived,
+    required this.asyncTask,
+  }): super(key: key);
+
+  @override
+  _MyWidgetState createState() => _MyWidgetState();
+}
+
+class _MyWidgetState extends State<ReadBackground> with WidgetsBindingObserver {
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _startTimer();
+  }
+
+  @override
+  void dispose() {
+    _stopTimer();
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _startTimer();
+    } else if (state == AppLifecycleState.paused) {
+      _stopTimer();
+    }
+  }
+
+  void _startTimer() {
+    _timer?.cancel();
+    _timer = Timer.periodic(Duration(seconds: 1), (Timer timer) {
+      widget.asyncTask();
+    });
+  }
+
+  void _stopTimer() {
+    _timer?.cancel();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return
+      Center(child:
+        Text(widget.messageRecived,
+          style: TextStyle(
+            fontSize: 25,
+            color: AppColors.primaryColor,
+            fontWeight: FontWeight.normal,),
+        ),
+      );
   }
 }
