@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:provider/provider.dart';
 
+import 'CalibrationPage.dart';
 import 'Utils.dart';
 import 'BluetoothViewmodel.dart';
 import 'main.dart';
@@ -172,5 +173,132 @@ class DrawerItemsState extends ChangeNotifier {
   }
   void setDeviceMetadata(List<List<String>> data){
     deviceInformation = data;
+  }
+}
+
+class SensorsAvailableCard extends StatelessWidget {
+  final Map<String,bool> sensorsVisibility;
+
+  const SensorsAvailableCard({
+    Key? key,
+    required this.sensorsVisibility,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    DrawerItemsState drawerItemsState = Provider.of<DrawerItemsState>(context);
+    BluetoothManager _bluetoothManager = Provider.of<BluetoothManager>(context, listen: true);
+    int trueCount = sensorsVisibility.values.where((value) => value).length;
+    return
+      BaseCard(
+        cardTitle: 'Calibración',
+        body:
+        [Column(
+          children:[
+            if(trueCount<=0) ...[
+              Center(
+                  child: Text("No hay datos de sensores...")
+              ),
+              SizedBox(height: 20),
+            ],
+            ...sensorsVisibility.entries.where((entry)=> entry.value).map((entry)=>
+                Column(
+                    children:[
+                      Center(
+                          child:
+                          ButtonCustom(
+                            onPressed: (){
+                              String? initMenuCode = drawerItemsState.itemsAdress[entry.key];
+                              if (initMenuCode!= null) _bluetoothManager.sendMessage(initMenuCode);
+                              Navigator.push(context,MaterialPageRoute(builder: (context) => CalibrationPage(sensorType: entry.key)),);
+                            },
+                            color: AppColors.secondaryColor,
+                            text: entry.key,
+                            fillWidth: true,
+                            textColor: AppColors.primaryColor,)
+                      ),
+                      SizedBox(height: 20),
+                    ]
+                )
+            )
+          ],
+        )],
+      );
+  }
+}
+
+class DeviceInfoCard extends StatelessWidget {
+  final List<List<String>> deviceInfo;
+  final VoidCallback onPressDescargar;
+  final VoidCallback onPressEliminar;
+  final VoidCallback onPressDesconectar;
+
+  const DeviceInfoCard({
+    Key? key,
+    required this.deviceInfo,
+    required this.onPressDescargar,
+    required this.onPressEliminar,
+    required this.onPressDesconectar,
+  }): super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return
+      BaseCard(
+          cardTitle: 'Estación',
+          cardIcon: Icons.info_outline,
+          body:
+          [Column(
+            children: deviceInfo.map((List<String> items) => gridItem(items[0], items[1])).toList(),//List.generate(6, (index) => gridItem(index)),
+          ),
+            SizedBox(height: 30),
+            LayoutBuilder(
+                builder: (context, constraints) {
+                  if (constraints.maxWidth > 300) {
+                    return Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        ButtonCustom(onPressed: (){onPressDescargar();}, color: AppColors.primaryColor, text: "Descargar"),
+                        ButtonCustom(onPressed: (){onPressEliminar();}, color: AppColors.primaryColor, text: "Eliminar")
+                      ],
+                    );
+                  } else{
+                    return Column(
+                      children: [
+                        ButtonCustom(onPressed: (){onPressDescargar();}, color: AppColors.primaryColor, text: "Descargar", fillWidth: true,),
+                        SizedBox(height: 20),
+                        ButtonCustom(onPressed: (){onPressEliminar();}, color: AppColors.primaryColor, text: "Eliminar", fillWidth: true,)
+                      ],
+                    );
+                  }
+                }),
+            SizedBox(height: 20),
+            Center(
+                child: ButtonCustom(onPressed: (){onPressDesconectar();}, color: AppColors.secondaryColor, text: "Desconectar", fillWidth: true, textColor: AppColors.primaryColor,)
+            ),
+          ]
+      );
+  }
+
+  Widget gridItem(String itemName, String itemValue) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          itemName,
+          style: TextStyle(
+            fontSize: 18,
+            color: AppColors.accentColor,
+          ),
+        ),
+        Text(
+          itemValue,
+          style: TextStyle(
+            fontSize: 18,
+            color: AppColors.accentColor,
+          ),
+        ),
+      ],
+    );
   }
 }

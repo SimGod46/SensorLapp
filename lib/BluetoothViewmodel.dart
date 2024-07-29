@@ -116,7 +116,6 @@ class BluetoothManager extends ChangeNotifier{
         return false;
       }
     }
-
     return true;
   }
 
@@ -125,12 +124,13 @@ class BluetoothManager extends ChangeNotifier{
     if(!gpsEnabled){
       return;
     }
-
+    checkBLPermissions();
+/*
     var permissionGranted = await checkBLPermissions();
     if(!permissionGranted){
       return;
     }
-
+ */
     if (_bluetoothState.isEnabled) {
       await FlutterBluetoothSerial.instance.isDiscovering.then((onValue){
         if(onValue ?? false){
@@ -210,7 +210,6 @@ class BluetoothManager extends ChangeNotifier{
   }
 
   void onDataReceived(Uint8List data) {
-    print("Mensaje BL recibido:${String.fromCharCodes(data)} | Bytes: ${data.join(", ")}");
     data.forEach((byte) {
       logicManager.getByteFromBT(byte);
     });

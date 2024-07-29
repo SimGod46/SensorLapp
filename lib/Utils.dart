@@ -2,8 +2,11 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
+import 'package:provider/provider.dart';
 
+import 'BluetoothViewmodel.dart';
 import 'CalibrationPage.dart';
+import 'HomePage.dart';
 
 class AppColors {
   static const Color primaryColor = Color(0xFF2C2C2C);
@@ -138,98 +141,6 @@ class _DevicesPopUpState extends State<DevicesPopUp> {
   }
 }
 
-class CountdownWidget extends StatefulWidget {
-  final String text;
-  final int seconds;
-  final VoidCallback onCountDownFinish;
-
-  CountdownWidget({required this.text, required this.seconds, required this.onCountDownFinish});
-
-  @override
-  _CountdownWidgetState createState() => _CountdownWidgetState();
-}
-
-class _CountdownWidgetState extends State<CountdownWidget> {
-  late Timer _timer;
-  late int _remainingSeconds;
-  late double _progressValue;
-
-  @override
-  void initState() {
-    super.initState();
-    _remainingSeconds = widget.seconds;
-    _progressValue = 1.0;
-    _startTimer();
-  }
-
-  @override
-  void dispose() {
-    _timer.cancel();
-    super.dispose();
-  }
-
-  void _startTimer() {
-    _timer = Timer.periodic(Duration(seconds: 1), (timer) {
-      setState(() {
-        if (_remainingSeconds > 0) {
-          _remainingSeconds--;
-          _progressValue = _remainingSeconds / widget.seconds;
-        } else {
-          widget.onCountDownFinish();
-          _timer.cancel();
-        }
-      });
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            widget.text,
-            //style: TextStyle(fontSize: 24),
-            textAlign: TextAlign.justify,
-          ),
-          SizedBox(height: 30),
-          Expanded(
-            child:
-          LayoutBuilder(
-            builder: (context, constraints) {
-              // Calculate the maximum size available
-              double maxSize =
-              constraints.maxWidth < constraints.maxHeight
-                  ? constraints.maxWidth
-                  : constraints.maxHeight;
-              return Stack(
-                alignment: Alignment.center,
-                children: [
-                  SizedBox(
-                    width: maxSize,
-                    height: maxSize,
-                    child: CircularProgressIndicator(
-                      color: AppColors.primaryColor,
-                      strokeWidth: 6.0,
-                      value: _progressValue,
-                    ),
-                  ),
-                  Text(
-                    '$_remainingSeconds s',
-                    style: TextStyle(fontSize: 16),
-                  ),
-                ],
-              );
-            },
-          )),
-        ],
-      ),
-    );
-  }
-}
-
 class AlertPageCustom extends StatefulWidget {
   final bool enabledInput;
   final String hintText;
@@ -293,22 +204,13 @@ class MultiStepAlertDialog extends StatefulWidget {
 class _MultiStepAlertDialogState extends State<MultiStepAlertDialog> {
   PageController _pageController = PageController();
   int _currentPage = 0;
-  bool _isCountdownFinished = false;
   List<TextEditingController> _controllers = [];
 
-  void _onCountdownFinished() {
-    setState(() {
-      _isCountdownFinished = true;
-    });
-  }
-  void _onCountdownStarted() {
-    setState(() {
-      _isCountdownFinished = false;
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
+    BluetoothManager _bluetoothManager = Provider.of<BluetoothManager>(context, listen: true);
+    DrawerItemsState drawerItemsState = Provider.of<DrawerItemsState>(context);
     return
       GestureDetector(
         onTap: () {
@@ -334,14 +236,28 @@ class _MultiStepAlertDialogState extends State<MultiStepAlertDialog> {
                 int index = entry.key;
                 String item = entry.value.hint;
                 bool hasInput = entry.value.hasInput;
-                String waitText = entry.value.waitText ?? "Sumerja el sensor dentro de la solución de ${_controllers[index].text} ${widget.measureUnit}, luego de 10 segundos, presione siguiente.";
+                String waitText = entry.value.waitText ?? "Sumerja el sensor dentro de la solución de ${_controllers[index].text} ${widget.measureUnit}, luego de que este estabilizado, presione siguiente.\n\nIMPORTANTE: Mantenga el sensor mientras presiona \"Siguiente\" ";
                 return [
                   AlertPageCustom(hintText: item, extController: _controllers[index], enabledInput: hasInput,),
-                  CountdownWidget(
-                    text: waitText,
-                    seconds: 10,
-                    onCountDownFinish: _onCountdownFinished,
-                  ),
+                  Column(
+                    children: [
+                      Text(
+                        waitText,
+                        //style: TextStyle(fontSize: 24),
+                        textAlign: TextAlign.justify,
+                      ),
+                      SizedBox(height: 30),
+                      Expanded(
+                        child:
+                        ReadBackground(
+                          messageRecived: drawerItemsState.realTimeReading,
+                          asyncTask: () {
+                            _bluetoothManager.sendMessage("r", requiredEnd: true);
+                          },
+                        )
+                      ),
+                    ],
+                  )
                 ];
               }),
               Center(
@@ -372,7 +288,7 @@ class _MultiStepAlertDialogState extends State<MultiStepAlertDialog> {
             },
             child: Text('Atrás'),
           ),
-        if (_currentPage < widget.commands.length*2 && (  _currentPage % 2 == 0 || _isCountdownFinished ))
+        if (_currentPage < widget.commands.length*2 )
           TextButton(
             onPressed: () {
               FocusScope.of(context).unfocus();
@@ -381,7 +297,6 @@ class _MultiStepAlertDialogState extends State<MultiStepAlertDialog> {
                 widget.onNextPage(context,  widget.commands[idxNum].comand+_controllers[idxNum].text);
               }
 
-              _onCountdownStarted();
               _pageController.nextPage(
                 duration: Duration(milliseconds: 250),
                 curve: Curves.ease,
@@ -445,162 +360,6 @@ class DialogHelper {
     baseDialog(context, titleText, [
       Text(bodyText)
     ], onAccept);
-  }
-
-  static void showMultiInputDialog(BuildContext context, String titleText, List<String> hintTexts,VoidCallback onAccept){
-    final _textinfield = TextEditingController();
-    var newtext = "";
-    baseDialog(context, titleText,
-        hintTexts.map((item) => Column(
-          children: [
-            TextField(
-            controller: _textinfield,
-            onChanged: (txt)=> newtext = txt,
-            decoration: InputDecoration(
-              hintText: item,
-              border: OutlineInputBorder(),
-            )),
-            SizedBox(height: 20),
-          ],
-        ),
-        ).toList()
-     , onAccept);
-  }
-
-  static void showMyInputDialog(BuildContext context, String titleText, String hintText,VoidCallback onAccept){
-    final _textinfield = TextEditingController();
-    var newtext = "";
-    baseDialog(context, titleText, [
-      TextField(
-        controller: _textinfield,
-        onChanged: (txt)=> newtext = txt,
-        decoration: InputDecoration(
-          hintText: hintText,
-          border: OutlineInputBorder(),
-        ),
-      )
-    ], onAccept);
-  }
-}
-
-class DeviceInfoCard extends StatelessWidget {
-  final List<List<String>> deviceInfo;
-  final VoidCallback onPressDescargar;
-  final VoidCallback onPressEliminar;
-  final VoidCallback onPressDesconectar;
-
-  const DeviceInfoCard({
-    Key? key,
-    required this.deviceInfo,
-    required this.onPressDescargar,
-    required this.onPressEliminar,
-    required this.onPressDesconectar,
-  }): super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return
-      BaseCard(
-        cardTitle: 'Estación',
-        cardIcon: Icons.info_outline,
-        body:
-            [Column(
-              children: deviceInfo.map((List<String> items) => gridItem(items[0], items[1])).toList(),//List.generate(6, (index) => gridItem(index)),
-            ),
-            SizedBox(height: 30),
-            LayoutBuilder(
-            builder: (context, constraints) {
-            if (constraints.maxWidth > 300) {
-              return Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  ButtonCustom(onPressed: (){onPressDescargar();}, color: AppColors.primaryColor, text: "Descargar"),
-                  ButtonCustom(onPressed: (){onPressEliminar();}, color: AppColors.primaryColor, text: "Eliminar")
-                ],
-              );
-            } else{
-              return Column(
-                children: [
-                  ButtonCustom(onPressed: (){onPressDescargar();}, color: AppColors.primaryColor, text: "Descargar", fillWidth: true,),
-                  SizedBox(height: 20),
-                  ButtonCustom(onPressed: (){onPressEliminar();}, color: AppColors.primaryColor, text: "Eliminar", fillWidth: true,)
-                ],
-              );
-            }
-            }),
-            SizedBox(height: 20),
-            Center(
-              child: ButtonCustom(onPressed: (){onPressDesconectar();}, color: AppColors.secondaryColor, text: "Desconectar", fillWidth: true, textColor: AppColors.primaryColor,)
-            ),
-            ]
-    );
-  }
-
-  Widget gridItem(String itemName, String itemValue) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          itemName,
-          style: TextStyle(
-            fontSize: 18,
-            color: AppColors.accentColor,
-          ),
-        ),
-        Text(
-          itemValue,
-          style: TextStyle(
-            fontSize: 18,
-            color: AppColors.accentColor,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class SensorsAvailableCard extends StatelessWidget {
-  final Map<String,bool> sensorsVisibility;
-
-  const SensorsAvailableCard({
-    Key? key,
-    required this.sensorsVisibility,
-  }) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    int trueCount = sensorsVisibility.values.where((value) => value).length;
-    return
-      BaseCard(
-        cardTitle: 'Calibración',
-        body:
-        [Column(
-          children:[
-            if(trueCount<=0) ...[
-              Center(
-                  child: Text("No hay datos de sensores...")
-              ),
-              SizedBox(height: 20),
-            ],
-            ...sensorsVisibility.entries.where((entry)=> entry.value).map((entry)=>
-              Column(
-                children:[
-                  Center(
-                      child:
-                      ButtonCustom(
-                        onPressed: (){Navigator.push(context,MaterialPageRoute(builder: (context) => CalibrationPage(sensorType: entry.key)),);},
-                        color: AppColors.secondaryColor,
-                        text: entry.key,
-                        fillWidth: true,
-                        textColor: AppColors.primaryColor,)
-                  ),
-                  SizedBox(height: 20),
-                ]
-              )
-            )
-          ],
-        )],
-      );
   }
 }
 
