@@ -7,6 +7,7 @@ import 'package:sensor_lapp/main.dart';
 import 'dart:async';
 
 import 'BluetoothViewmodel.dart';
+import 'SensorsViewmodel.dart';
 
 class CalibrationPage extends StatefulWidget {
   final String sensorType;
@@ -30,6 +31,8 @@ class _CalibrationPage extends State<CalibrationPage> {
     DrawerItemsState drawerItemsState = Provider.of<DrawerItemsState>(context);
     final _textinfield = TextEditingController();
     var newtext = "";
+    SensorsManager logicManager = SensorsManager();
+    logicManager.currentPage = "CalibrationPage";
 
     return CustomScaffold(
         body: SingleChildScrollView(
@@ -92,6 +95,7 @@ class _CalibrationPage extends State<CalibrationPage> {
                       SizedBox(height: 20),
                       ButtonCustom(
                         onPressed: () {
+                          drawerItemsState.terminalMessages.clear();
                           Navigator.push(
                               context,
                               MaterialPageRoute(builder: (context) => TerminalPage()));
@@ -166,6 +170,7 @@ class _CalibrationPage extends State<CalibrationPage> {
                       SizedBox(height: 20),
                       ButtonCustom(
                         onPressed: () {
+                          drawerItemsState.terminalMessages.clear();
                           Navigator.push(
                               context,
                               MaterialPageRoute(builder: (context) => TerminalPage()));

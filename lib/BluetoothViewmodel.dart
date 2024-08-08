@@ -32,7 +32,7 @@ class BluetoothManager extends ChangeNotifier{
   ValueNotifier<bool> isConnected = ValueNotifier(false);
   bool isDiscovering = false;
   BluetoothConnection? _connection;
-
+  DateTime? lastMessageTime = DateTime.now();
   BluetoothState get bluetoothState => _bluetoothState;
 
   SensorsManager logicManager = SensorsManager();
@@ -84,6 +84,12 @@ class BluetoothManager extends ChangeNotifier{
 
   Future<bool> checkBLPermissions() async {
     List<permissions.Permission> permissionsNeeded = [];
+    if (await permissions.Permission.storage.isDenied) {
+      permissionsNeeded.add(permissions.Permission.storage);
+    }
+    if (await permissions.Permission.notification.isDenied) {
+      permissionsNeeded.add(permissions.Permission.notification);
+    }
     if (await permissions.Permission.bluetooth.isDenied) {
       permissionsNeeded.add(permissions.Permission.bluetooth);
     }
@@ -198,9 +204,22 @@ class BluetoothManager extends ChangeNotifier{
     }
     if (_connection != null && _connection!.isConnected) {
       try {
-        _connection!.output.add(Uint8List.fromList(utf8.encode(message + endMsg)));
-        await _connection!.output.allSent;
-        logicManager.setLastMessage(message);
+        DateTime _currentTime = DateTime.now();
+        if( logicManager.lastMessageSended == "r" && message != "r"){
+          lastMessageTime = _currentTime.add(Duration(seconds: 1, milliseconds: 500));//DateTime.now();
+          logicManager.readingEnabled = false;
+          await Future.delayed(Duration(seconds: 1, milliseconds: 500)); // espero 1.5 segundos
+          logicManager.readingEnabled = true;
+        }
+        if(message == "r" && !logicManager.readingEnabled){
+          return;
+        }
+        _currentTime = DateTime.now();
+        if(_currentTime.isAfter(lastMessageTime!)){
+          _connection!.output.add(Uint8List.fromList(utf8.encode(message + endMsg)));
+          await _connection!.output.allSent;
+          logicManager.setLastMessage(message);
+        }
       } catch (e) {
         print('Error al enviar mensaje: $e');
       }

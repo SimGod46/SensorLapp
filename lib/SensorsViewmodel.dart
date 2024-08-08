@@ -8,6 +8,18 @@ import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart' as permissions;
 import 'package:fluttertoast/fluttertoast.dart';
 
+class MessageModel {
+  final String timeStamp;
+  final String fromName;
+  final String message;
+
+  MessageModel({
+    String? timeStamp,
+    required this.fromName,
+    required this.message,
+  }) : timeStamp = timeStamp ?? DateFormat('[HH mm ss]').format(DateTime.now());
+}
+
 String formatBytes(String bytesRaw, {int decimals = 1}) {
   int bytes = int.parse(bytesRaw);
   if (bytes <= 0) return "0 Bytes";
@@ -30,14 +42,20 @@ class SensorsManager{
   String lastMessageSended = "";
   int bytesCount = 0;
   int notificationId = 0;
-
+  bool readingEnabled = true;
   int fileSize = 0;
   int cardSize = 0;
 
   //TODO: Revisar que pasa si envio un mensaje sin esperar a que termine la respuesta...
 
   setLastMessage(String message){
+    DrawerItemsState drawerItemsState = DrawerItemsState();
     lastMessageSended = message;
+    if(currentPage == "Terminal"){
+      drawerItemsState.terminalMessages.add(
+          MessageModel(fromName: "Local", message: lastMessageSended)
+      );
+    }
   }
 
   getByteFromBT(int byte){
@@ -70,6 +88,9 @@ class SensorsManager{
   getMessageFromBT(String lastMessageSended, List<String> currentMessages){
     DrawerItemsState drawerItemsState = DrawerItemsState();
     if(currentPage == "Terminal"){
+      drawerItemsState.terminalMessages.add(
+        MessageModel(fromName: "Remote", message: currentMessages.last)
+      );
       //TODO: Mostrar los comando de terminal solo en la terminal!
     } else if(lastMessageSended == "1" || lastMessageSended == "3"){
       try{

@@ -3,6 +3,8 @@ import 'package:fluttertoast/fluttertoast.dart';
 import 'package:provider/provider.dart';
 
 import 'CalibrationPage.dart';
+import 'SensorsViewmodel.dart';
+import 'TerminalPage.dart';
 import 'Utils.dart';
 import 'BluetoothViewmodel.dart';
 import 'main.dart';
@@ -130,6 +132,8 @@ class DrawerItemsState extends ChangeNotifier {
 
   List<List<String>> deviceInformation = List<List<String>>.empty(growable: true);
 
+  List<MessageModel> terminalMessages = List<MessageModel>.empty(growable: true);
+
   String currentPage = "";
 
   String realTimeReading = "No data";
@@ -189,6 +193,8 @@ class SensorsAvailableCard extends StatelessWidget {
     DrawerItemsState drawerItemsState = Provider.of<DrawerItemsState>(context);
     BluetoothManager _bluetoothManager = Provider.of<BluetoothManager>(context, listen: true);
     int trueCount = sensorsVisibility.values.where((value) => value).length;
+    SensorsManager logicManager = SensorsManager();
+    logicManager.currentPage = "Home";
     return
       BaseCard(
         cardTitle: 'Calibración',
