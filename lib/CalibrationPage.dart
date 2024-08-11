@@ -31,8 +31,7 @@ class _CalibrationPage extends State<CalibrationPage> {
     DrawerItemsState drawerItemsState = Provider.of<DrawerItemsState>(context);
     final _textinfield = TextEditingController();
     var newtext = "";
-    SensorsManager logicManager = SensorsManager();
-    logicManager.currentPage = "CalibrationPage";
+    //drawerItemsState.setCurrentPage("CalibrationPage");
 
     return CustomScaffold(
         body: SingleChildScrollView(
@@ -55,7 +54,6 @@ class _CalibrationPage extends State<CalibrationPage> {
                       ),
                       SizedBox(height: 20),
                       ButtonCustom(
-
                         onPressed: () {
                           showDialog(
                             context: context,
@@ -95,8 +93,8 @@ class _CalibrationPage extends State<CalibrationPage> {
                       SizedBox(height: 20),
                       ButtonCustom(
                         onPressed: () {
-                          drawerItemsState.terminalMessages.clear();
-                          Navigator.push(
+                          drawerItemsState.clearTerminal();
+                          Navigator.pushReplacement(
                               context,
                               MaterialPageRoute(builder: (context) => TerminalPage()));
                           },
@@ -170,8 +168,8 @@ class _CalibrationPage extends State<CalibrationPage> {
                       SizedBox(height: 20),
                       ButtonCustom(
                         onPressed: () {
-                          drawerItemsState.terminalMessages.clear();
-                          Navigator.push(
+                          drawerItemsState.clearTerminal();
+                          Navigator.pushReplacement(
                               context,
                               MaterialPageRoute(builder: (context) => TerminalPage()));
                         },
@@ -180,6 +178,7 @@ class _CalibrationPage extends State<CalibrationPage> {
                         fillWidth: true,
                         textColor: AppColors.primaryColor,
                       ),
+                      SizedBox(height: 20),
                       ButtonCustom(
                         onPressed: () {
                           _bluetoothManager.sendMessage("0", requiredEnd: true);
@@ -209,40 +208,6 @@ class _CalibrationPage extends State<CalibrationPage> {
                         SizedBox(height: 15),
                       ]
                   )
-                  /*
-            BaseCard(
-              cardTitle: "Terminal",
-              body: [
-                Row(children: <Widget>[
-                  Expanded(
-                    child: TextField(
-                      controller: _textinfield,
-                      onChanged: (txt) => newtext = txt,
-                      decoration: InputDecoration(
-                        hintText: 'Ingrese comando...',
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
-                  ),
-                  SizedBox(width: 8.0), // Espacio entre el TextField y el IconButton
-                  IconButton(
-                    icon: Icon(Icons.send), // Icono de avión de papel
-                    onPressed: () {
-                      // Acción al presionar el botón (enviar mensaje, por ejemplo)
-                      Fluttertoast.showToast(
-                        msg: "Mensaje enviado",
-                      );
-                      FocusScope.of(context).unfocus();
-                      _textinfield.clear();
-                      _bluetoothManager.sendMessage(newtext, requiredEnd: true);
-                    },
-                  ),
-                ]),
-                SizedBox(height: 20),
-              ],
-            )
-            */
-
                 ])
             ),
           ),

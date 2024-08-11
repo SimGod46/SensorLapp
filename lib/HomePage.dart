@@ -121,7 +121,7 @@ class _HomePageState extends State<HomePage> {
   }
 }
 
-class DrawerItemsState extends ChangeNotifier {
+class DrawerItemsState extends ChangeNotifier{
   static DrawerItemsState? _instance;
 
   DrawerItemsState._(){
@@ -134,7 +134,7 @@ class DrawerItemsState extends ChangeNotifier {
 
   List<MessageModel> terminalMessages = List<MessageModel>.empty(growable: true);
 
-  String currentPage = "";
+  //String currentPage = "";
 
   String realTimeReading = "No data";
 
@@ -153,6 +153,30 @@ class DrawerItemsState extends ChangeNotifier {
   };
 
   int sheetSize = 0;
+
+  String _currentPage = '';
+  String get currentPage => _currentPage;
+
+  void setCurrentPage(String page){
+    _currentPage = page;
+  }
+
+  void updateCurrentPage(Route route) {
+    _currentPage = route.settings.name ?? '';
+    notifyListeners();
+  }
+
+  void addToTerminal(String sendedBy, String message){
+    terminalMessages.add(
+        MessageModel(fromName: "Local", message: message)
+    );
+    notifyListeners();
+  }
+
+  void clearTerminal(){
+    terminalMessages.clear();
+    notifyListeners();
+  }
 
   void setRealTimeRead(String read){
     realTimeReading = read;
@@ -193,8 +217,7 @@ class SensorsAvailableCard extends StatelessWidget {
     DrawerItemsState drawerItemsState = Provider.of<DrawerItemsState>(context);
     BluetoothManager _bluetoothManager = Provider.of<BluetoothManager>(context, listen: true);
     int trueCount = sensorsVisibility.values.where((value) => value).length;
-    SensorsManager logicManager = SensorsManager();
-    logicManager.currentPage = "Home";
+    //drawerItemsState.setCurrentPage("Home");
     return
       BaseCard(
         cardTitle: 'Calibración',
@@ -216,6 +239,7 @@ class SensorsAvailableCard extends StatelessWidget {
                             onPressed: (){
                               String? initMenuCode = drawerItemsState.itemsAdress[entry.key];
                               if (initMenuCode!= null) _bluetoothManager.sendMessage(initMenuCode);
+                              drawerItemsState.setCurrentPage("CalibrationPage");
                               Navigator.push(context,MaterialPageRoute(builder: (context) => CalibrationPage(sensorType: entry.key)),);
                             },
                             color: AppColors.secondaryColor,

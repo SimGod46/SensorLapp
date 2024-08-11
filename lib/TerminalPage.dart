@@ -11,10 +11,9 @@ class TerminalPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    DrawerItemsState drawerItemsState = DrawerItemsState();
+    DrawerItemsState drawerItemsState = Provider.of<DrawerItemsState>(context);
     BluetoothManager _bluetoothManager = Provider.of<BluetoothManager>(context, listen: true);
-    SensorsManager logicManager = SensorsManager();
-    logicManager.currentPage = "Terminal";
+    drawerItemsState.setCurrentPage("Terminal");
     final _textinfield = TextEditingController();
     var newtext = "";
     return Scaffold(
@@ -22,6 +21,11 @@ class TerminalPage extends StatelessWidget {
         title: const Text('Terminal'),
       ),
         body:
+        GestureDetector(
+        onTap: () {
+        FocusScope.of(context).unfocus();
+        },
+        child:
         Column(
           mainAxisSize: MainAxisSize.max,
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -82,6 +86,7 @@ class TerminalPage extends StatelessWidget {
             ),
           ],
         )
+      )
     );
   }
 }

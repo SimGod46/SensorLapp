@@ -17,7 +17,7 @@ class MessageModel {
     String? timeStamp,
     required this.fromName,
     required this.message,
-  }) : timeStamp = timeStamp ?? DateFormat('[HH mm ss]').format(DateTime.now());
+  }) : timeStamp = timeStamp ?? DateFormat('[HH:mm:ss]').format(DateTime.now());
 }
 
 String formatBytes(String bytesRaw, {int decimals = 1}) {
@@ -37,7 +37,6 @@ String formatBytes(String bytesRaw, {int decimals = 1}) {
 
 class SensorsManager{
   List<String> messages = List<String>.empty(growable: true);
-  String currentPage = "";
   String _messageBuffer = "";
   String lastMessageSended = "";
   int bytesCount = 0;
@@ -51,10 +50,8 @@ class SensorsManager{
   setLastMessage(String message){
     DrawerItemsState drawerItemsState = DrawerItemsState();
     lastMessageSended = message;
-    if(currentPage == "Terminal"){
-      drawerItemsState.terminalMessages.add(
-          MessageModel(fromName: "Local", message: lastMessageSended)
-      );
+    if(drawerItemsState.currentPage == "Terminal"){
+      drawerItemsState.addToTerminal("Local", lastMessageSended);
     }
   }
 
@@ -87,11 +84,8 @@ class SensorsManager{
 
   getMessageFromBT(String lastMessageSended, List<String> currentMessages){
     DrawerItemsState drawerItemsState = DrawerItemsState();
-    if(currentPage == "Terminal"){
-      drawerItemsState.terminalMessages.add(
-        MessageModel(fromName: "Remote", message: currentMessages.last)
-      );
-      //TODO: Mostrar los comando de terminal solo en la terminal!
+    if(drawerItemsState.currentPage == "Terminal"){
+      drawerItemsState.addToTerminal("Remote", currentMessages.last);
     } else if(lastMessageSended == "1" || lastMessageSended == "3"){
       try{
         List<String> initialNames = ['Versión Firmware', 'ID Dispositivo', 'Estado SD','Archivo', 'Esp. usado', 'Esp. total'];
