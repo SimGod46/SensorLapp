@@ -131,12 +131,12 @@ class DrawerItemsState extends ChangeNotifier{
   factory DrawerItemsState() => _instance ??= DrawerItemsState._();
 
   List<List<String>> deviceInformation = List<List<String>>.empty(growable: true);
-
   List<MessageModel> terminalMessages = List<MessageModel>.empty(growable: true);
 
   //String currentPage = "";
 
   String realTimeReading = "No data";
+  bool isOnTerminal = false;
 
   Map<String, bool> itemsVisibility = {
     "PH": false,
@@ -153,18 +153,6 @@ class DrawerItemsState extends ChangeNotifier{
   };
 
   int sheetSize = 0;
-
-  String _currentPage = '';
-  String get currentPage => _currentPage;
-
-  void setCurrentPage(String page){
-    _currentPage = page;
-  }
-
-  void updateCurrentPage(Route route) {
-    _currentPage = route.settings.name ?? '';
-    notifyListeners();
-  }
 
   void addToTerminal(String sendedBy, String message){
     terminalMessages.add(
@@ -239,8 +227,7 @@ class SensorsAvailableCard extends StatelessWidget {
                             onPressed: (){
                               String? initMenuCode = drawerItemsState.itemsAdress[entry.key];
                               if (initMenuCode!= null) _bluetoothManager.sendMessage(initMenuCode);
-                              drawerItemsState.setCurrentPage("CalibrationPage");
-                              Navigator.push(context,MaterialPageRoute(builder: (context) => CalibrationPage(sensorType: entry.key)),);
+                              Navigator.pushNamed(context, "/calibration", arguments: entry.key);
                             },
                             color: AppColors.secondaryColor,
                             text: entry.key,

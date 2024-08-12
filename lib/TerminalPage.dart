@@ -11,9 +11,9 @@ class TerminalPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    print(ModalRoute.of(context)!.settings.name);
     DrawerItemsState drawerItemsState = Provider.of<DrawerItemsState>(context);
     BluetoothManager _bluetoothManager = Provider.of<BluetoothManager>(context, listen: true);
-    drawerItemsState.setCurrentPage("Terminal");
     final _textinfield = TextEditingController();
     var newtext = "";
     return Scaffold(
@@ -26,7 +26,13 @@ class TerminalPage extends StatelessWidget {
         FocusScope.of(context).unfocus();
         },
         child:
-        Column(
+        PopScope(
+            canPop: true,
+            onPopInvoked: (bool didPop) async{
+              drawerItemsState.isOnTerminal = false;
+            },
+            child:
+            Column(
           mainAxisSize: MainAxisSize.max,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -85,7 +91,7 @@ class TerminalPage extends StatelessWidget {
               ),
             ),
           ],
-        )
+        ))
       )
     );
   }

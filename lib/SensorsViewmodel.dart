@@ -8,6 +8,8 @@ import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart' as permissions;
 import 'package:fluttertoast/fluttertoast.dart';
 
+import 'main.dart';
+
 class MessageModel {
   final String timeStamp;
   final String fromName;
@@ -50,7 +52,7 @@ class SensorsManager{
   setLastMessage(String message){
     DrawerItemsState drawerItemsState = DrawerItemsState();
     lastMessageSended = message;
-    if(drawerItemsState.currentPage == "Terminal"){
+    if( drawerItemsState.isOnTerminal){
       drawerItemsState.addToTerminal("Local", lastMessageSended);
     }
   }
@@ -84,7 +86,7 @@ class SensorsManager{
 
   getMessageFromBT(String lastMessageSended, List<String> currentMessages){
     DrawerItemsState drawerItemsState = DrawerItemsState();
-    if(drawerItemsState.currentPage == "Terminal"){
+    if(drawerItemsState.isOnTerminal){
       drawerItemsState.addToTerminal("Remote", currentMessages.last);
     } else if(lastMessageSended == "1" || lastMessageSended == "3"){
       try{

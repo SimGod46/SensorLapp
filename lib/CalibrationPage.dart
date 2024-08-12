@@ -10,11 +10,8 @@ import 'BluetoothViewmodel.dart';
 import 'SensorsViewmodel.dart';
 
 class CalibrationPage extends StatefulWidget {
-  final String sensorType;
+  const CalibrationPage({Key? key}) : super(key: key);
 
-  const CalibrationPage({
-    required this.sensorType,
-  });
   @override
   _CalibrationPage createState() => _CalibrationPage();
 }
@@ -27,6 +24,10 @@ class _CalibrationPage extends State<CalibrationPage> {
 
   @override
   Widget build(BuildContext context) {
+    print(ModalRoute.of(context)!.settings.name);
+
+    final String sensorType = ModalRoute.of(context)!.settings.arguments as String;
+
     BluetoothManager _bluetoothManager = Provider.of<BluetoothManager>(context, listen: true);
     DrawerItemsState drawerItemsState = Provider.of<DrawerItemsState>(context);
     final _textinfield = TextEditingController();
@@ -43,8 +44,8 @@ class _CalibrationPage extends State<CalibrationPage> {
                   _bluetoothManager.sendMessage("0");
                 },
                 child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                  BaseCard(cardTitle: widget.sensorType, body: [
-                    if (widget.sensorType == "PH") ...[
+                  BaseCard(cardTitle: sensorType, body: [
+                    if (sensorType == "PH") ...[
                       ButtonCustom(
                         onPressed: () {_bluetoothManager.sendMessage("Cal,clear", requiredEnd: true);},
                         color: AppColors.secondaryColor,
@@ -94,9 +95,8 @@ class _CalibrationPage extends State<CalibrationPage> {
                       ButtonCustom(
                         onPressed: () {
                           drawerItemsState.clearTerminal();
-                          Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(builder: (context) => TerminalPage()));
+                          drawerItemsState.isOnTerminal = true;
+                          Navigator.pushReplacementNamed(context, "/terminal");
                           },
                         color: AppColors.secondaryColor,
                         text: "Terminal",
@@ -107,10 +107,7 @@ class _CalibrationPage extends State<CalibrationPage> {
                       ButtonCustom(
                         onPressed: () {
                           _bluetoothManager.sendMessage("0", requiredEnd: true);
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(builder: (context) => HomePage()),
-                          );
+                          Navigator.pushReplacementNamed(context, "/");
                         },
                         color: AppColors.primaryColor,
                         text: "Atrás",
@@ -118,7 +115,7 @@ class _CalibrationPage extends State<CalibrationPage> {
                         textColor: AppColors.secondaryColor,
                       )
                     ],
-                    if (widget.sensorType == "EC") ...[
+                    if (sensorType == "EC") ...[
                       ButtonCustom(
                         onPressed: () {_bluetoothManager.sendMessage("Cal,clear", requiredEnd: true);},
                         color: AppColors.secondaryColor,
@@ -169,9 +166,8 @@ class _CalibrationPage extends State<CalibrationPage> {
                       ButtonCustom(
                         onPressed: () {
                           drawerItemsState.clearTerminal();
-                          Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(builder: (context) => TerminalPage()));
+                          drawerItemsState.isOnTerminal = true;
+                          Navigator.pushReplacementNamed(context, "/terminal");
                         },
                         color: AppColors.secondaryColor,
                         text: "Terminal",
@@ -182,10 +178,7 @@ class _CalibrationPage extends State<CalibrationPage> {
                       ButtonCustom(
                         onPressed: () {
                           _bluetoothManager.sendMessage("0", requiredEnd: true);
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(builder: (context) => HomePage()),
-                          );
+                          Navigator.pushReplacementNamed(context, "/");
                         },
                         color: AppColors.primaryColor,
                         text: "Atrás",
@@ -250,7 +243,7 @@ class _ReadBackground extends State<ReadBackground> with WidgetsBindingObserver 
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       _startTimer();
-    } else if (state == AppLifecycleState.paused) {
+    } else if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
       _stopTimer();
     }
   }

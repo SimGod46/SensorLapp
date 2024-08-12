@@ -3,10 +3,10 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:location/location.dart';
-import 'package:sensor_lapp/HomePage.dart';
 import 'package:sensor_lapp/SensorsViewmodel.dart';
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
 import 'package:permission_handler/permission_handler.dart' as permissions;
+import 'package:device_info_plus/device_info_plus.dart';
 
 class BluetoothManager extends ChangeNotifier{
   static BluetoothManager? _instance;
@@ -83,6 +83,10 @@ class BluetoothManager extends ChangeNotifier{
   }
 
   Future<bool> checkBLPermissions() async {
+    final DeviceInfoPlugin info = DeviceInfoPlugin(); // import 'package:device_info_plus/device_info_plus.dart';
+    final AndroidDeviceInfo androidInfo = await info.androidInfo;
+    final int androidVersion = androidInfo.version.sdkInt;
+
     List<permissions.Permission> permissionsNeeded = [];
     if (await permissions.Permission.storage.isDenied) {
       permissionsNeeded.add(permissions.Permission.storage);
@@ -90,8 +94,10 @@ class BluetoothManager extends ChangeNotifier{
     if (await permissions.Permission.notification.isDenied) {
       permissionsNeeded.add(permissions.Permission.notification);
     }
-    if (await permissions.Permission.bluetooth.isDenied) {
-      permissionsNeeded.add(permissions.Permission.bluetooth);
+    if (androidVersion <= 30) {
+      if (await permissions.Permission.bluetooth.isDenied) {
+        permissionsNeeded.add(permissions.Permission.bluetooth);
+      }
     }
     if (await permissions.Permission.bluetoothConnect.isDenied) {
       permissionsNeeded.add(permissions.Permission.bluetoothConnect);
@@ -102,15 +108,14 @@ class BluetoothManager extends ChangeNotifier{
     if (await permissions.Permission.locationWhenInUse.isDenied) {
       permissionsNeeded.add(permissions.Permission.locationWhenInUse);
     }
-
-    Map<permissions.Permission, permissions.PermissionStatus> statuses = await permissionsNeeded.request();
-
-    /*
-    if (statuses.values.any((status) => status.isDenied)) {
-      permissions.openAppSettings();
-      return false;
+    if(permissionsNeeded.isNotEmpty){
+      Map<permissions.Permission, permissions.PermissionStatus> statuses = await permissionsNeeded.request();
+      if (statuses.values.any((status) => status.isDenied)) {
+        permissions.openAppSettings();
+        return false;
+      }
     }
-     */
+
     return true;
   }
 
@@ -130,13 +135,12 @@ class BluetoothManager extends ChangeNotifier{
     if(!gpsEnabled){
       return;
     }
-    checkBLPermissions();
-/*
+
     var permissionGranted = await checkBLPermissions();
     if(!permissionGranted){
       return;
     }
- */
+
     if (_bluetoothState.isEnabled) {
       await FlutterBluetoothSerial.instance.isDiscovering.then((onValue){
         if(onValue ?? false){
@@ -175,8 +179,7 @@ class BluetoothManager extends ChangeNotifier{
           print('Disconnected remotely!');
         }
         DisconnectDevice();
-        Navigator.pushReplacement(context,
-          MaterialPageRoute(builder: (context) => HomePage()),);
+        Navigator.pushNamed(context, "/");
       });
     } catch (e) {
       print('Error al conectar: $e');

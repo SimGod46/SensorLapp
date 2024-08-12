@@ -2,11 +2,15 @@ import 'package:provider/provider.dart';
 import 'package:flutter/material.dart';
 import 'package:sensor_lapp/BluetoothViewmodel.dart';
 import 'package:sensor_lapp/CalibrationPage.dart';
+import 'package:sensor_lapp/TerminalPage.dart';
 import 'HomePage.dart';
 import 'NotificationViewmodel.dart';
 import 'Utils.dart';
 
+final globalNavigatorKey = GlobalKey<NavigatorState>();
+
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
   runApp(Datapp());
 }
 
@@ -47,7 +51,13 @@ class _Datapp extends State<Datapp> with WidgetsBindingObserver {
             fillColor: WidgetStateColor.resolveWith((states) => Color(0xFF2C2C2C)), // Cambia el color del radio button
           ),
         ),
-        home: HomePage(),
+        navigatorKey: globalNavigatorKey,
+        initialRoute: '/',
+        routes: {
+          '/': (context) => HomePage(),
+          '/calibration': (context) => CalibrationPage(),
+          '/terminal': (context) => TerminalPage(),
+        },
       ),
     );
   }
