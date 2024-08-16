@@ -65,7 +65,7 @@ class SensorsManager{
       }
       int progress = (bytesCount*100) ~/ fileSize;
       if(progress % 10 == 0 && progress != 100){
-        LocalNotificationService.displayProgress(notificationId, "Guardando archivo CSV", "Progreso: ${progress}", progress);
+        LocalNotificationService.displayProgress(notificationId, "Guardando archivo CSV", "Progreso: ${progress}%", progress);
       }
     }
     if (byte == 4 || byte == 13 || byte == 10) {

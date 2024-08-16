@@ -30,6 +30,7 @@ class TerminalPage extends StatelessWidget {
             canPop: true,
             onPopInvoked: (bool didPop) async{
               drawerItemsState.isOnTerminal = false;
+              _bluetoothManager.sendMessage("0");
             },
             child:
             Column(
@@ -85,7 +86,7 @@ class TerminalPage extends StatelessWidget {
                     onPressed: () {
                       // Acción al presionar el botón (enviar mensaje, por ejemplo)
                       _textinfield.clear();
-                      _bluetoothManager.sendMessage(newtext);
+                      _bluetoothManager.sendMessage(newtext, requiredEnd: true);
                     },
                   ),],
               ),
