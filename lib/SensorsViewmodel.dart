@@ -46,6 +46,7 @@ class SensorsManager{
   bool readingEnabled = true;
   int fileSize = 0;
   int cardSize = 0;
+  int percentCount = -1;
 
   //TODO: Revisar que pasa si envio un mensaje sin esperar a que termine la respuesta...
 
@@ -64,7 +65,8 @@ class SensorsManager{
         notificationId = DateTime.now().millisecondsSinceEpoch ~/ 1000;
       }
       int progress = (bytesCount*100) ~/ fileSize;
-      if(progress % 10 == 0 && progress != 100){
+      if(progress % 10 == 0 && progress != 100 && progress > percentCount){
+        percentCount = progress;
         LocalNotificationService.displayProgress(notificationId, "Guardando archivo CSV", "Progreso: ${progress}%", progress);
       }
     }
@@ -88,7 +90,7 @@ class SensorsManager{
     DrawerItemsState drawerItemsState = DrawerItemsState();
     if(drawerItemsState.isOnTerminal){
       drawerItemsState.addToTerminal("Remote", currentMessages.last);
-    } else if(lastMessageSended == "1" || lastMessageSended == "3"){
+    } else if(lastMessageSended == "1\r\n" || lastMessageSended == "3"){
       try{
         List<String> initialNames = ['Versión Firmware', 'ID Dispositivo', 'Estado SD','Archivo', 'Esp. usado', 'Esp. total'];
         List<String> initialParams = currentMessages[0].split(",");
@@ -157,14 +159,18 @@ class SensorsManager{
       // Convertir los datos a formato CSV
       String csv = ListToCsvConverter().convert(csvData);
 
-      var status = await permissions.Permission.storage.status;
+
+      var status = await permissions.Permission.manageExternalStorage.status;
       if (!status.isGranted) {
         // If not we will ask for permission first
-        status = await permissions.Permission.storage.request();
+        Fluttertoast.showToast(msg: "Permisos de almacenamiento no entregados...");
+        print("NO hay permisos garantizados para almacenamiento...");
+        status = await permissions.Permission.manageExternalStorage.request();
         if(!status.isGranted){
           return;
         }
       }
+
 
       // Escribir los datos al archivo CSV
       await file.writeAsString(csv);

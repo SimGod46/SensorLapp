@@ -99,6 +99,9 @@ class BluetoothManager extends ChangeNotifier{
         permissionsNeeded.add(permissions.Permission.bluetooth);
       }
     }
+    if (await permissions.Permission.manageExternalStorage.isDenied) {
+      permissionsNeeded.add(permissions.Permission.manageExternalStorage);
+    }
     if (await permissions.Permission.bluetoothConnect.isDenied) {
       permissionsNeeded.add(permissions.Permission.bluetoothConnect);
     }

@@ -30,7 +30,7 @@ class TerminalPage extends StatelessWidget {
             canPop: true,
             onPopInvoked: (bool didPop) async{
               drawerItemsState.isOnTerminal = false;
-              _bluetoothManager.sendMessage("0");
+              _bluetoothManager.sendMessage("0", requiredEnd: true);
             },
             child:
             Column(

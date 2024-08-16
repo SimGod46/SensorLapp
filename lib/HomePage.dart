@@ -100,7 +100,7 @@ class _HomePageState extends State<HomePage> {
                                         Navigator.pop(context);
                                       },
                                       onConfirmation: (deviceAddr) {
-                                        _bluetoothManager.connectToDevice(deviceAddr, "1", context);
+                                        _bluetoothManager.connectToDevice(deviceAddr, "1\r\n", context);
                                         Navigator.pop(context);
                                       },
                                     );
@@ -156,7 +156,7 @@ class DrawerItemsState extends ChangeNotifier{
 
   void addToTerminal(String sendedBy, String message){
     terminalMessages.add(
-        MessageModel(fromName: "Local", message: message)
+        MessageModel(fromName: sendedBy, message: message)
     );
     notifyListeners();
   }
